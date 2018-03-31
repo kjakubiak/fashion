@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
-import numocoProcessing.*;
+import com.pl.jakubiak.numocoapi.*;
 
 
 import javax.xml.bind.JAXBContext;
@@ -43,36 +43,32 @@ public class Main {
 
 	public static void main(String[] args) throws Exception  {
 		String baseUrl = "http://fashion-jakubiak.pl/webapi/rest";
+		
 		RestHelper shopConnection = new RestHelper(baseUrl);
+		NumocoHelper numocoConnection = new NumocoHelper();
 		
-		List<Item> listOfItems = new ArrayList<>();
-
+		List<Product> listOfNumocoProducts = numocoConnection.getProducts();
+		
+		numocoConnection.processProducts(shopConnection);
 		//	NumocoHelper.processNumocoXML(listOfItems);
-		//Form form1 = new Form();
-		shopConnection.getProductByCode("dress161010720");
-		System.out.println("single processed");
-		 Map filterMap = new HashMap();
-		 filterMap.put("product_id", 39);
-		 	
-			ArrayList<LinkedTreeMap> list = shopConnection.getProductsList(filterMap);
-			for(LinkedTreeMap<String,Object> entry:list)
-			{
-				//System.out.println(entry);
-				System.out.println("----------------");
-				for(Map.Entry<String,Object> mapEntry:entry.entrySet())
-				{
-				System.out.println(mapEntry.getKey()+" = "+mapEntry.getValue());
-				}
-				System.out.println("----------------");
-
-			}
-			//System.out.println(list.get(2));
-		//	System.out.println(products.get("list"));
-			//System.out.println(response1);
-			
+		shopConnection.getProductByCode("183-2");
 		
-	}
-	
-	
+	//	System.out.println("single processed");
+		
+		Map filterMap = new HashMap();
+		filterMap.put("product_id", 156);
+	//	filterMap.put("stock.code", "183-2");
 
+		ArrayList<LinkedTreeMap> list = shopConnection.getProductsList(1,filterMap);
+		for(LinkedTreeMap<String,Object> entry:list)
+		{
+			//System.out.println(entry);
+		//	System.out.println("----------------");
+			for(Map.Entry<String,Object> mapEntry:entry.entrySet())
+			{
+			//System.out.println(mapEntry.getKey()+" = "+mapEntry.getValue());
+			}
+			//System.out.println("----------------");
+		}		
+	}
 }

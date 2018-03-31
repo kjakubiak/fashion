@@ -1,14 +1,20 @@
 package jakubiakFashionItemsLoader;
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
+import numocoProcessing.*;
+
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.Unmarshaller;
 
 import java.net.URI;
+import java.net.URLEncoder;
 
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
@@ -23,114 +29,46 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
-import org.glassfish.jersey.media.sse.SseFeature;
+import org.glassfish.jersey.internal.guava.Maps;
 
-import com.sun.jersey.api.client.WebResource;
-
-import numocoProcessing.Product;
-import numocoProcessing.Root;
-import numocoProcessing.Size;
-import numocoProcessing.Sizes; 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.internal.LinkedTreeMap;
+import com.pl.jakubiak.numocoapi.Product;
+import com.pl.jakubiak.numocoapi.Root;
+import com.pl.jakubiak.numocoapi.Size;
+import com.pl.jakubiak.numocoapi.Sizes;
+import com.pl.jakubiak.shopperapi.RestHelper;
 public class Main {
-	private static void processNumocoXML(List<Item> listOfItems) throws Exception
-	{
-		File file = new File("C:\\Firma\\pobrane.xml");
-		JAXBContext jaxbContext  = JAXBContext.newInstance(numocoProcessing.Root.class);
-		int counter=0;
-		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-		Root root = (Root) jaxbUnmarshaller.unmarshal(file);
+
+	public static void main(String[] args) throws Exception  {
+		String baseUrl = "http://fashion-jakubiak.pl/webapi/rest";
+		RestHelper shopConnection = new RestHelper(baseUrl);
 		
-		for(Product product:root.getProducts().getProducts())
-		{
-			counter++;			
-			String tempProductName;
-			
-			// Determinig master item name
-			
-			if(product.getModel() != null)
-			{
-				tempProductName = product.getName().substring(product.getName().trim().indexOf(' ')+2).replaceAll(product.getModel(), "").trim();
-			}else
-			{
-				tempProductName = product.getName().substring(product.getName().trim().indexOf(' ')+2).trim();
-			}
-			if(tempProductName.length() > 50 && tempProductName.lastIndexOf("-")>20)
-			{
-				tempProductName = tempProductName.substring(0, tempProductName.lastIndexOf("-"));
-			}
-			
-		//	System.out.println(tempProductName);
-			
-			if(product.getSizes()!=null)
-			{
-				/// Product processing
-			
-				
-				Sizes sizes = product.getSizes();
-				if(sizes.getSizes()!= null && !sizes.getSizes().isEmpty())
-				{
-					for(Size size:sizes.getSizes())
-					{
-						if(size != null)
-						{
-							// Sizes processing
-							String sizeTempProductName = tempProductName;
-							if(sizeTempProductName.trim().length() < 47)
-							{
-								sizeTempProductName = sizeTempProductName.trim() + " "+size.getName();
-							}
-							Item item = new Item();
-							item.setName(sizeTempProductName);
-							item.setitCostPrice(Double.parseDouble(size.getPrice()));
-							item.setSymbol(product.getModel());
-							listOfItems.add(item);
-						}
-						
-					}
-				}
-			}
-			
-		}
-//		System.out.println(Integer.toString(counter));
-	}
-	private static URI getBaseURI() {
-        return UriBuilder.fromUri("https://fashion-jakubiak.pl/webapi/rest").build();
-    }
-	public static void main(String[] args) throws Exception{
-		// TODO Auto-generated method stub
-		String baseurl = "http://fashion-jakubiak.pl/webapi/rest";
 		List<Item> listOfItems = new ArrayList<>();
-		processNumocoXML(listOfItems);
 
-		Client client = ClientBuilder.newClient();
-		WebTarget target = client.target(baseurl).path("auth");
-
-		Form form = new Form();
-
-		String response=target
-				.request(MediaType.APPLICATION_FORM_URLENCODED_TYPE).header("Authorization", "Basic YXBpYWRtaW46QXBpQWRtaW4xMjM=")
-				.post(Entity.form(form),String.class);
-		
-		Gson gson = new GsonBuilder().create();
-		HashMap map = gson.fromJson(response, HashMap.class);
-		System.out.println(response);
-		System.out.println(map.get("access_token"));
-
-		 target = client.target(baseurl).path("Products");
-
-			//Form form1 = new Form();
-
-			String response1=target
-					.request(MediaType.APPLICATION_FORM_URLENCODED_TYPE).header("Authorization", "Bearer "+map.get("access_token")).get(String.class);
-			Map<String,Object> products = gson.fromJson(response1, Map.class);
-			
-			for(Map.Entry<String, Object> entry:products.entrySet())
+		//	NumocoHelper.processNumocoXML(listOfItems);
+		//Form form1 = new Form();
+		shopConnection.getProductByCode("dress161010720");
+		System.out.println("single processed");
+		 Map filterMap = new HashMap();
+		 filterMap.put("product_id", 39);
+		 	
+			ArrayList<LinkedTreeMap> list = shopConnection.getProductsList(filterMap);
+			for(LinkedTreeMap<String,Object> entry:list)
 			{
-				Syst
+				//System.out.println(entry);
+				System.out.println("----------------");
+				for(Map.Entry<String,Object> mapEntry:entry.entrySet())
+				{
+				System.out.println(mapEntry.getKey()+" = "+mapEntry.getValue());
+				}
+				System.out.println("----------------");
+
 			}
-			System.out.println(response1);
+			//System.out.println(list.get(2));
+		//	System.out.println(products.get("list"));
+			//System.out.println(response1);
 			
 		
 	}

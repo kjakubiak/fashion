@@ -1,4 +1,4 @@
-package numocoProcessing;
+package com.pl.jakubiak.numocoapi;
 
 import java.util.List;
 

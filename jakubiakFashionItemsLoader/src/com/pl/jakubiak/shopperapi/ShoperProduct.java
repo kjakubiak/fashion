@@ -115,6 +115,13 @@ public class ShoperProduct {
 		mapOfStockSizes.put("XXL",65);
 		mapOfStockSizes.put("XXXL",66);
 		mapOfStockSizes.put("Uniwersalny",67);
+		mapOfStockSizes.put("UNI",67);
+		mapOfStockSizes.put("S/M", 68);
+		mapOfStockSizes.put("M/L", 69);
+		mapOfStockSizes.put("L/XL", 70);
+		mapOfStockSizes.put("XL/XXL", 71);
+		mapOfStockSizes.put("XXXXL", 72);
+		
 		
 		return mapOfStockSizes.get(size);
 	}
@@ -146,7 +153,7 @@ public class ShoperProduct {
 				newStock.put("active", false);
 			}
 			newStock.put("price", Math.floor(Double.parseDouble(size.getPrice())));
-			newStock.put("ean", size.getEan().replaceAll("\\n", ""));
+			newStock.put("ean", size.getEan().replaceAll("\\n", "").trim());
 			Map<String,String> optionMap = new HashMap();
 			optionMap.put("7", getStockNumber(size.getName()).toString());
 			

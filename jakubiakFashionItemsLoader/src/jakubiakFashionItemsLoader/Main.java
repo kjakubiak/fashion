@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 
+import com.pl.jakubiak.lemoniadeapi.*;
 import com.pl.jakubiak.numocoapi.*;
 
 
@@ -16,16 +17,6 @@ import javax.xml.bind.Unmarshaller;
 import java.net.URI;
 import java.net.URLEncoder;
 
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Form;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.MultivaluedHashMap;
-import javax.ws.rs.core.MultivaluedMap;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
@@ -47,5 +38,11 @@ public class Main {
 		RestHelper shopConnection = new RestHelper(baseUrl);
 		NumocoHelper numocoConnection = new NumocoHelper();
 		numocoConnection.processProducts(shopConnection);
+		
+		//LemoniadeHelper lemoniadeConnection = new LemoniadeHelper();
+		
+		//List<com.pl.jakubiak.lemoniadeapi.Product> listOfProducts = lemoniadeConnection.getListOfProducts();
+		//listOfProducts.get(0);
+		//System.out.println(listOfProducts.get(0).getCombinations().getCombinations().get(0).getAttributes().getValues().get(0).toString());
 	}
 }

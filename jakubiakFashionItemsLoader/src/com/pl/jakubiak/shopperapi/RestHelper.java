@@ -110,6 +110,8 @@ public class RestHelper {
 		Client client = ClientBuilder.newClient();
 		Gson gson = new GsonBuilder().create();
 		String filterString = gson.toJson(filterMap);
+		try
+		{
 		WebTarget target = client.target(baseUrl).path(path);
 		String restResponse = target
 				.request(MediaType.APPLICATION_JSON_TYPE)
@@ -117,6 +119,31 @@ public class RestHelper {
 				.post(Entity.json(jsonToCommit),String.class);
 		
 		return Integer.parseInt(restResponse);
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		return 0;
+	}
+	public int commitTransactionPut(String jsonToCommit,String path) throws UnsupportedEncodingException, InterruptedException
+	{
+		Client client = ClientBuilder.newClient();
+		Gson gson = new GsonBuilder().create();
+		String filterString = gson.toJson(filterMap);
+		try
+		{
+		WebTarget target = client.target(baseUrl).path(path);
+		String restResponse = target
+				.request(MediaType.APPLICATION_JSON_TYPE)
+				.header("Authorization", "Bearer "+authToken)
+				.put(Entity.json(jsonToCommit),String.class);
+		
+		return Integer.parseInt(restResponse);
+		}catch(Exception e)
+		{
+			e.printStackTrace();
+		}
+		return 0;
 	}
 	public ArrayList<LinkedTreeMap> getProductsList(int limit,Map filterMap) throws UnsupportedEncodingException, InterruptedException
 	{

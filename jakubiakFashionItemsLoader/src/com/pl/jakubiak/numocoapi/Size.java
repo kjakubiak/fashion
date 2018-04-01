@@ -11,7 +11,8 @@ public class Size {
 	String count;
 	String price;
 	String ean;
-	@XmlAttribute	public String getName()
+	@XmlAttribute
+	public String getName()
 	{
 		return this.name;
 	}

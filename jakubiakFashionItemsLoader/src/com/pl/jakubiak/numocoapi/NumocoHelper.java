@@ -69,11 +69,18 @@ public class NumocoHelper {
 		productToAdd.setDelivery_id(2);
 		productToAdd.setPkwiu("");
 		productToAdd.setStock(productToAdd.generateStock(product));
-		productToAdd.setEan(product.getEan().replaceAll("\\n", "").trim());
-		
+		System.out.println(product.getEan());
+		if(!product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim().startsWith("5"))
+		{
+			productToAdd.setEan("5"+product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim());
+		}else
+		{
+			productToAdd.setEan(product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim());
+
+		}
 		String jsonToProvision = gson.toJson(productToAdd).replaceAll("\\\\","").replaceAll("\\}\"","}").replaceAll("\"\\{", "{");
 		System.out.println("NumocoHelper product generated");
-		
+		System.out.println("Numoco helper product provisioning json: "+jsonToProvision);
 		productId = shopConnection.commitTransaction(jsonToProvision);
 		System.out.println("NumocoHelper product provisioned");
 		
@@ -89,52 +96,70 @@ public class NumocoHelper {
 
 		// Add variants
 		System.out.println("NumocoHelper generating product variants");
-
-		List<String> stocksAddString = productToAdd.generateStocks(product,productId);
-		for(String jsonSingleStock:stocksAddString)
+		
+		if(product.getSizes().getSizes() != null)
 		{
-			jsonSingleStock = jsonSingleStock.replaceAll("\\\\","").replaceAll("\\}\"","}").replaceAll("\"\\{", "{");
-			shopConnection.commitTransaction(jsonSingleStock, "product-stocks");
+			List<String> stocksAddString = productToAdd.generateStocks(product,productId);
+			
+			for(String jsonSingleStock:stocksAddString)
+			{
+				jsonSingleStock = jsonSingleStock.replaceAll("\\\\","").replaceAll("\\}\"","}").replaceAll("\"\\{", "{");
+				System.out.println("String to provision: "+jsonSingleStock);
+				shopConnection.commitTransaction(jsonSingleStock, "product-stocks");
+			}
+			System.out.println("NumocoHelper product variants provisioned");
 		}
-		System.out.println("NumocoHelper product variants provisioned");
 
 	}
 	public void modifyProductStocks(Product product,RestHelper shoperConnection) throws UnsupportedEncodingException, InterruptedException
 	{
 		List<Size> listOfStocksToUpdate = product.getSizes().getSizes();
 		Gson gson = new Gson();
+		Boolean first = true;
+		if(listOfStocksToUpdate!=null)
+		{
 		for(Size size : listOfStocksToUpdate)
 		{
 			Map<String,Object> shoperProduct = shoperConnection.getStockByEan(size.getEan().trim());
+			if(first && Integer.parseInt(size.getCount())>0)
+			{
+				shoperProduct.put("default", true);
+				first=false;
+			}else
+			{
+				shoperProduct.put("default", false);
+			}
 			System.out.print("Returning product object");
 			System.out.println(shoperProduct);
 			System.out.println("Shoper stock: "+shoperProduct.get("stock"));
 			System.out.println(("File product stock: "+size.getCount()));
+			
 			if(Integer.parseInt((String) shoperProduct.get("stock"))!=Integer.parseInt(size.getCount()))
 			{
 				String productId = (String) shoperProduct.get("product_id");
 				String stockId = (String) shoperProduct.get("stock_id");
-			String path = "product-stocks/"+stockId;
-		//	shoperProduct.put(key, value)
-			//shoperProduct.put("product_id", productId);
-			shoperProduct.put("stock", size.getCount());
-			if(Integer.parseInt(size.getCount())>0)
-			{
-				shoperProduct.put("active", true);
-			}
-			if(Integer.parseInt(size.getCount())<=0)
-			{
-				shoperProduct.put("active", false);
-			}
-			
-			String jsonToProvision = gson.toJson(shoperProduct);
-			System.out.println(jsonToProvision);
-			shoperConnection.commitTransaction(jsonToProvision, "product-stocks");
-			
+				String path = "product-stocks/"+stockId;
+				System.out.println("Path is: "+path);
+			//	shoperProduct.put(key, value)
+				//shoperProduct.put("product_id", productId);
+				shoperProduct.put("stock", size.getCount());
+				if(Integer.parseInt(size.getCount())>0)
+				{
+					shoperProduct.put("active", true);
+				}
+				if(Integer.parseInt(size.getCount())<=0)
+				{
+					shoperProduct.put("active", false);
+				}
+				
+				String jsonToProvision = gson.toJson(shoperProduct);
+				System.out.println(jsonToProvision);
+				shoperConnection.commitTransactionPut(jsonToProvision, path);
+				
 			}
 			
 		}
-		
+		}
 	}
 	public void processProducts(RestHelper shoperConnection) throws UnsupportedEncodingException, InterruptedException
 	{
@@ -147,6 +172,7 @@ public class NumocoHelper {
 		
 		for(Product product:listOfProducts)
 		{
+			Thread.sleep(5000);
 			if(progressProcent != (processCounter*100)/listOfProducts.size())
 			{
 				progressProcent = (processCounter*100)/listOfProducts.size();
@@ -182,7 +208,7 @@ public class NumocoHelper {
 	}
 	public NumocoHelper() throws Exception
 	{
-		File file = new File("C:\\Firma\\123.xml");
+		File file = new File("C:\\Firma\\01042018numoco.xml");
 		
 		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);
 		int counter=0;

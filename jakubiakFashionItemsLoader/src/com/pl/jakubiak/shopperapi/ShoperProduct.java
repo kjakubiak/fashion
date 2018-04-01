@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Map;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.pl.jakubiak.numocoapi.Product;
 import com.pl.jakubiak.numocoapi.Size;
 
@@ -15,6 +16,7 @@ public class ShoperProduct {
 	private Integer group_id;
 	private Integer unit_id;
 	private Double other_price;
+	private Integer delivery_id;
 	private String code;
 	private Double dimension_w;
 	private Double dimension_h;
@@ -45,24 +47,39 @@ public class ShoperProduct {
 										Integer orderNumber)										
 	{
 		Map<String,Object> polishTranslationMap = new HashMap();
-		String productName = product.getName().replaceAll("\\n", "");
-
+		String tempProductName = product.getName();
+		if(product.getModel() != null)
+		{
+			tempProductName = product.getName().substring(product.getName().trim().indexOf(' ')+2).replaceAll(product.getModel(), "").trim();
+		}else
+		{
+				tempProductName = product.getName().substring(product.getName().trim().indexOf(' ')+2).trim();
+		}
+		if(tempProductName.length() > 50 && tempProductName.lastIndexOf("-")>20)
+		{
+				tempProductName = tempProductName.substring(0, tempProductName.lastIndexOf("-"));
+		}
+		
+		String productName = tempProductName.replaceAll("\\n", "");
+		//Gson descriptionGson = sonBuilder().disableHtmlEscaping().create();
+		//System.out.println(product.getDescription());
 		polishTranslationMap.put("name", productName);
-		polishTranslationMap.put("short_description", product.getDescription());
-		polishTranslationMap.put("description", product.getDescription());
+		//polishTranslationMap.put("short_description", product.getDescription());
+		//polishTranslationMap.put("description", product.getDescription().replaceAll("\\<[^>]*>",""));
 		polishTranslationMap.put("active", productStatus);
 		polishTranslationMap.put("seo_title", productName);
+		polishTranslationMap.put("delivery_id", 2);
 		polishTranslationMap.put("seo_keywords", productName);
 		polishTranslationMap.put("order", orderNumber);
 		polishTranslationMap.put("main_page", true);
 		polishTranslationMap.put("main_page_order", orderNumber);
-		Gson gson = new Gson();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		translationsList.put(translationName,(String) gson.toJson(polishTranslationMap, HashMap.class));
 		
 	}
 	public Double countPrice(String price)
 	{
-		return Math.floor(Double.parseDouble(price)*1.23*2);
+		return Math.floor(Double.parseDouble(price)*1.23);
 	}
 	public String generateStock(Product product)
 	{
@@ -128,7 +145,7 @@ public class ShoperProduct {
 			{
 				newStock.put("active", false);
 			}
-			newStock.put("price", countPrice(size.getPrice()));
+			newStock.put("price", Math.floor(Double.parseDouble(size.getPrice())));
 			newStock.put("ean", size.getEan().replaceAll("\\n", ""));
 			Map<String,String> optionMap = new HashMap();
 			optionMap.put("7", getStockNumber(size.getName()).toString());
@@ -358,6 +375,12 @@ public class ShoperProduct {
 	}
 	public void setGroup_id(Integer group_id) {
 		this.group_id = group_id;
+	}
+	public Integer getDelivery_id() {
+		return delivery_id;
+	}
+	public void setDelivery_id(Integer delivery_id) {
+		this.delivery_id = delivery_id;
 	}
 
 	

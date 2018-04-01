@@ -46,29 +46,6 @@ public class Main {
 		
 		RestHelper shopConnection = new RestHelper(baseUrl);
 		NumocoHelper numocoConnection = new NumocoHelper();
-		
-		List<Product> listOfNumocoProducts = numocoConnection.getProducts();
-		
 		numocoConnection.processProducts(shopConnection);
-		//	NumocoHelper.processNumocoXML(listOfItems);
-		shopConnection.getProductByCode("183-2");
-		
-	//	System.out.println("single processed");
-		
-		Map filterMap = new HashMap();
-		filterMap.put("product_id", 156);
-	//	filterMap.put("stock.code", "183-2");
-
-		ArrayList<LinkedTreeMap> list = shopConnection.getProductsList(1,filterMap);
-		for(LinkedTreeMap<String,Object> entry:list)
-		{
-			//System.out.println(entry);
-		//	System.out.println("----------------");
-			for(Map.Entry<String,Object> mapEntry:entry.entrySet())
-			{
-			//System.out.println(mapEntry.getKey()+" = "+mapEntry.getValue());
-			}
-			//System.out.println("----------------");
-		}		
 	}
 }

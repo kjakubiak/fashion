@@ -26,12 +26,12 @@ public class RestHelper {
 	
 	public RestHelper(String baseUrl)
 	{
-		System.out.println("RestFull Api establishing connection");
+		//System.out.println("RestFull Api establishing connection");
 		Client client = ClientBuilder.newClient();
 		WebTarget target = client.target(baseUrl).path("auth");
 
 		Form form = new Form();
-		System.out.println("RestFull Api negotiating security token");
+		//System.out.println("RestFull Api negotiating security token");
 
 		String response=target
 						.request(MediaType.APPLICATION_FORM_URLENCODED_TYPE).header("Authorization", "Basic YXBpYWRtaW46QXBpQWRtaW4xMjM=")
@@ -39,7 +39,7 @@ public class RestHelper {
 		
 		Gson gson = new GsonBuilder().create();
 		HashMap map = gson.fromJson(response, HashMap.class);
-		System.out.println("RestFull Api security token returned: "+map.get("access_token"));
+		//System.out.println("RestFull Api security token returned: "+map.get("access_token"));
 
 		this.baseUrl = baseUrl;
 		this.authToken = (String) map.get("access_token");
@@ -47,44 +47,66 @@ public class RestHelper {
 	
 	public Map<String,Object> getProductByEan(String ean) throws UnsupportedEncodingException, InterruptedException
 	{
-		System.out.println("RestFull API getProductByEan method executed");
+		//System.out.println("RestFull API getProductByEan method executed");
 		Map<String, Object> filtersMap = new HashMap();
 		filtersMap.put("stock.ean", ean);
-		System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
+		//System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
 
 		ArrayList<LinkedTreeMap> list = getProductsList(1,filtersMap);
-		System.out.println("RestFull API getProductsList executed, returning list of products");
+		//System.out.println("RestFull API getProductsList executed, returning list of products");
 
 		if(list != null && list.size()>0)
 		{
-			System.out.println("RestFull API returned list is not empty");
+			//System.out.println("RestFull API returned list is not empty");
 
 			return list.get(0);
 		}else
 		{
-			System.out.println("RestFull API returned list is empty");
+			//System.out.println("RestFull API returned list is empty");
+
+			return null;
+		}
+	}
+	public Map<String,Object> getProductByCode(String code) throws UnsupportedEncodingException, InterruptedException
+	{
+		//System.out.println("RestFull API getProductByEan method executed");
+		Map<String, Object> filtersMap = new HashMap();
+		filtersMap.put("stock.code", code);
+		//System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
+
+		ArrayList<LinkedTreeMap> list = getProductsList(1,filtersMap);
+		//System.out.println("RestFull API getProductsList executed, returning list of products");
+
+		if(list != null && list.size()>0)
+		{
+			//System.out.println("RestFull API returned list is not empty");
+
+			return list.get(0);
+		}else
+		{
+			//System.out.println("RestFull API returned list is empty");
 
 			return null;
 		}
 	}
 	public Map<String,Object> getStockByEan(String ean) throws UnsupportedEncodingException, InterruptedException
 	{
-		System.out.println("RestFull API getProductByEan method executed");
+		//System.out.println("RestFull API getProductByEan method executed");
 		Map<String, Object> filtersMap = new HashMap();
 		filtersMap.put("ean", ean);
-		System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
+		//System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
 
 		ArrayList<LinkedTreeMap> list = getProductsList(1,filtersMap,"product-stocks");
-		System.out.println("RestFull API getProductsList executed, returning list of products");
+		//System.out.println("RestFull API getProductsList executed, returning list of products");
 
 		if(list != null && list.size()>0)
 		{
-			System.out.println("RestFull API returned list is not empty");
+			//System.out.println("RestFull API returned list is not empty");
 
 			return list.get(0);
 		}else
 		{
-			System.out.println("RestFull API returned list is empty");
+			//System.out.println("RestFull API returned list is empty");
 
 			return null;
 		}
@@ -154,8 +176,8 @@ public class RestHelper {
 		Client client = ClientBuilder.newClient();
 		Gson gson = new GsonBuilder().create();
 		String filterString = gson.toJson(filterMap);
-		System.out.println("RestFull API received filterString is: "+URLEncoder.encode(filterString, "UTF-8"));
-		System.out.println("RestFull API received baseUrl is: "+baseUrl);
+		//System.out.println("RestFull API received filterString is: "+URLEncoder.encode(filterString, "UTF-8"));
+		//System.out.println("RestFull API received baseUrl is: "+baseUrl);
 		
 		WebTarget target = client.target(baseUrl).path(path);
 		

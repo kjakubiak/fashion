@@ -2,6 +2,8 @@ package com.pl.jakubiak.numocoapi;
 
 import java.io.File;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +19,28 @@ import com.pl.jakubiak.shopperapi.*;
 public class NumocoHelper {
 	private static List<Product> listOfProducts;
 	private static  Boolean productStatus = false;
-	public List<Product> getProducts()
+	private static Boolean processAll;
+	private static Boolean processNumoco;
+	private static Boolean stocksOnly;
+	private static List<String> listOfCodesToProcess;
+	
+	public NumocoHelper(String filePath,String numocoEansFilePath, Boolean processAll,Boolean stocksOnly) throws Exception
 	{
-		return this.listOfProducts;
+		File numocoXMLFile = new File(filePath);
+		
+		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);		
+		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
+		Root root = (Root) jaxbUnmarshaller.unmarshal(numocoXMLFile);
+		
+		this.listOfProducts =  root.getProducts().getProducts();
+		this.processAll = processAll;
+		this.stocksOnly = stocksOnly;
+
+		File numocoListOfEansFile = new File(numocoEansFilePath);
+		
+		this.listOfCodesToProcess = Files.readAllLines(numocoListOfEansFile.toPath(),Charset.forName("UTF-8"));
 	}
+
 	public String categoryMapper(String categoryID)
 	{
 		Map<String,String> categoryMap = new HashMap();
@@ -31,7 +51,6 @@ public class NumocoHelper {
 		categoryMap.put("236", "20"); // Koszule
 		categoryMap.put("167", "21"); // Tuniki
 		
-		
 		if(categoryMap.get(categoryID) != null)
 		{
 			return categoryMap.get(categoryID);
@@ -40,6 +59,7 @@ public class NumocoHelper {
 			return "13";
 		}
 	}
+
 	public void createNewProduct(Product product,RestHelper shopConnection) throws UnsupportedEncodingException, InterruptedException
 	{
 		System.out.println("NumocoHelper PRODUCT CREATION STARTED");
@@ -121,41 +141,43 @@ public class NumocoHelper {
 		for(Size size : listOfStocksToUpdate)
 		{
 			Map<String,Object> shoperProduct = shoperConnection.getStockByEan(size.getEan().trim());
-			if(first && Integer.parseInt(size.getCount())>0)
+			if(shoperProduct!=null)
 			{
-				shoperProduct.put("default", true);
-				first=false;
-			}else
-			{
-				shoperProduct.put("default", false);
-			}
-			System.out.print("Returning product object");
-			System.out.println(shoperProduct);
-			System.out.println("Shoper stock: "+shoperProduct.get("stock"));
-			System.out.println(("File product stock: "+size.getCount()));
-			
-			if(Integer.parseInt((String) shoperProduct.get("stock"))!=Integer.parseInt(size.getCount()))
-			{
-				String productId = (String) shoperProduct.get("product_id");
-				String stockId = (String) shoperProduct.get("stock_id");
-				String path = "product-stocks/"+stockId;
-				System.out.println("Path is: "+path);
-			//	shoperProduct.put(key, value)
-				//shoperProduct.put("product_id", productId);
-				shoperProduct.put("stock", size.getCount());
-				if(Integer.parseInt(size.getCount())>0)
+				if(first && Integer.parseInt(size.getCount())>0)
 				{
-					shoperProduct.put("active", true);
-				}
-				if(Integer.parseInt(size.getCount())<=0)
+					shoperProduct.put("default", true);
+					first=false;
+				}else
 				{
-					shoperProduct.put("active", false);
+					shoperProduct.put("default", false);
 				}
+				System.out.print("Returning product object");
+				System.out.println(shoperProduct);
+				System.out.println("Shoper stock: "+shoperProduct.get("stock"));
+				System.out.println(("File product stock: "+size.getCount()));
 				
-				String jsonToProvision = gson.toJson(shoperProduct);
-				System.out.println(jsonToProvision);
-				shoperConnection.commitTransactionPut(jsonToProvision, path);
-				
+				if(Integer.parseInt((String) shoperProduct.get("stock"))!=Integer.parseInt(size.getCount()))
+				{
+					String productId = (String) shoperProduct.get("product_id");
+					String stockId = (String) shoperProduct.get("stock_id");
+					String path = "product-stocks/"+stockId;
+					System.out.println("Path is: "+path);
+				//	shoperProduct.put(key, value)
+					//shoperProduct.put("product_id", productId);
+					shoperProduct.put("stock", size.getCount());
+					if(Integer.parseInt(size.getCount())>0)
+					{
+						shoperProduct.put("active", true);
+					}
+					if(Integer.parseInt(size.getCount())<=0)
+					{
+						shoperProduct.put("active", false);
+					}
+					
+					String jsonToProvision = gson.toJson(shoperProduct);
+					System.out.println(jsonToProvision);
+					shoperConnection.commitTransactionPut(jsonToProvision, path);
+				}		
 			}
 			
 		}
@@ -172,101 +194,62 @@ public class NumocoHelper {
 		
 		for(Product product:listOfProducts)
 		{
-			Thread.sleep(5000);
-			if(progressProcent != (processCounter*100)/listOfProducts.size())
-			{
-				progressProcent = (processCounter*100)/listOfProducts.size();
-				System.out.println("NumocoHelper Progress... "+(processCounter*100)/listOfProducts.size()+"%");
-			}
-			System.out.println("NumocoHelper Checking product EAN number");
+			System.out.println("NumocoHelper verifying if Code: "+product.getModel()+" shall be processed.");
+			System.out.println("NumocoHelper list of codes is: "+listOfCodesToProcess.toString());
+			System.out.println("NumocoHelper process all is: "+processAll);
+			//System.out.println("NumocoHelper code to process : "+listOfCodesToProcess.contains(product.getModel().trim()));
 
-			if(product.getEan()!=null)
+			if(processAll || (product.getModel() != null) && listOfCodesToProcess.contains(product.getModel().trim()))
 			{
-				System.out.println("NumocoHelper EAN number is: "+product.getEan().trim());
-				Map<String,Object> shoperProduct = shoperConnection.getProductByEan(product.getEan().trim());
-				
-				if(shoperProduct != null )
+				System.out.println("NumocoHelper processing");
+
+				Thread.sleep(5000);
+				if(progressProcent != (processCounter*100)/listOfProducts.size())
 				{
-					System.out.println("NumocoHelper product found in Shopper database");
-					modifyProductStocks(product,shoperConnection);
-					// Modify stock quantities
-					foundCounter++;
-				}else
-				{
-					System.out.println("NumocoHelper product not found in Shopper database");
-					// Create new product
-					createNewProduct(product,shoperConnection);
-					notFoundCounter++;
+					progressProcent = (processCounter*100)/listOfProducts.size();
+					System.out.println("NumocoHelper Progress... "+(processCounter*100)/listOfProducts.size()+"%");
 				}
+				System.out.println("NumocoHelper Checking product EAN number");
+	
+				if(product.getEan()!=null)
+				{
+					System.out.println("NumocoHelper EAN number is: "+product.getEan().trim());
+					Map<String,Object> shoperProduct = shoperConnection.getProductByEan(product.getEan().trim());
+					
+					if(shoperProduct != null)
+					{
+						System.out.println("NumocoHelper product found in Shopper database");
+						modifyProductStocks(product,shoperConnection);
+						// Modify stock quantities
+						foundCounter++;
+					}else
+					{
+						System.out.println("NumocoHelper product not found in Shopper database");
+						// Create new product
+					
+						createNewProduct(product,shoperConnection);
+						notFoundCounter++;
+						
+						}
+				}
+				processCounter++;
+			}else
+			{
+				System.out.println("NumocoHelper skipping");
 			}
-			processCounter++;
 		}
 		System.out.println("NumocoHelper found "+Integer.toString(foundCounter)+" products");
 		System.out.println("NumocoHelper not found "+Integer.toString(notFoundCounter)+" products");
 		System.out.println("NumocoHelper FINISHED PROCESSING");
 
 	}
-	public NumocoHelper() throws Exception
+	
+	public List<Product> getProducts()
 	{
-		File file = new File("C:\\Firma\\01042018numoco.xml");
-		
-		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);
-		int counter=0;
-		
-		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-		Root root = (Root) jaxbUnmarshaller.unmarshal(file);
-		this.listOfProducts =  root.getProducts().getProducts();
-//		for(Product product:root.getProducts().getProducts())
-	//	{
-		//	counter++;			
-			//String tempProductName;
-			
-			// Determinig master item name
-			
-		//	if(product.getModel() != null)
-		//	{
-		//		tempProductName = product.getName().substring(product.getName().trim().indexOf(' ')+2).replaceAll(product.getModel(), "").trim();
-		//	}else
-		//	{
-		//		tempProductName = product.getName().substring(product.getName().trim().indexOf(' ')+2).trim();
-		//	}
-		//	if(tempProductName.length() > 50 && tempProductName.lastIndexOf("-")>20)
-		//	{
-		//		tempProductName = tempProductName.substring(0, tempProductName.lastIndexOf("-"));
-		//	}
-			
-		//	System.out.println(tempProductName);
-			
-		//	if(product.getSizes()!=null)
-		//	{
-				/// Product processing
-			
-				
-	//			Sizes sizes = product.getSizes();
-		//		if(sizes.getSizes()!= null && !sizes.getSizes().isEmpty())
-			//	{
-				//	for(Size size:sizes.getSizes())
-					//{
-						//if(size != null)
-//						{
-							// Sizes processing
-	//						String sizeTempProductName = tempProductName;
-		//					if(sizeTempProductName.trim().length() < 47)
-			//				{
-				//				sizeTempProductName = sizeTempProductName.trim() + " "+size.getName();
-					//		}
-						//	Item item = new Item();
-							//item.setName(sizeTempProductName);
-							//item.setitCostPrice(Double.parseDouble(size.getPrice()));
-							//item.setSymbol(product.getModel());
-						//	listOfItems.add(item);
-					//	}
-						
-				//	}
-			//	}
-		//	}
-			
-		//}
-//		System.out.println(Integer.toString(counter));
+		return this.listOfProducts;
+	}
+	public List<String> getEANStoProcess()
+	{
+		return this.listOfCodesToProcess;
 	}
 }

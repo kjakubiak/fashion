@@ -16,7 +16,8 @@ import javax.xml.bind.Unmarshaller;
 
 import java.net.URI;
 import java.net.URLEncoder;
-
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
@@ -34,13 +35,29 @@ public class Main {
 
 	public static void main(String[] args) throws Exception  {
 		String baseUrl = "http://fashion-jakubiak.pl/webapi/rest";
+		String numocoFilePath = "\\\\\\\\192.168.1.1\\\\123\\\\Firma\\\\01042018numoco.xml";
+		String numocoCodesFilePath = "\\\\192.168.1.1\\123\\Firma\\numocoListOfCodes.txt";
+		String lemoniadeFilePath = "\\\\192.168.1.1\\123\\Firma\\01042018lemoniade.xml";
+		String lemoniadeCodesFilePath = "\\\\192.168.1.1\\123\\Firma\\lemoniadeListOfCodes.txt";
+	
+		Boolean processAll = true;
+		Boolean processNumoco = false;
+		Boolean processLemoniade = true;
+		Boolean stocksOnly = true;
 		
 		RestHelper shopConnection = new RestHelper(baseUrl);
-		NumocoHelper numocoConnection = new NumocoHelper();
-		numocoConnection.processProducts(shopConnection);
+		System.out.println(shopConnection.getProductsList(1));
+		if(processNumoco)
+		{
+			NumocoHelper numocoConnection = new NumocoHelper(numocoFilePath,numocoCodesFilePath, processAll, stocksOnly);
+			numocoConnection.processProducts(shopConnection);
+		}
 		
-		//LemoniadeHelper lemoniadeConnection = new LemoniadeHelper();
-		
+		if(processLemoniade)
+		{
+			LemoniadeHelper lemoniadeConnection = new LemoniadeHelper(lemoniadeFilePath,lemoniadeCodesFilePath, processAll, stocksOnly);
+			lemoniadeConnection.processProducts(shopConnection);
+		}
 		//List<com.pl.jakubiak.lemoniadeapi.Product> listOfProducts = lemoniadeConnection.getListOfProducts();
 		//listOfProducts.get(0);
 		//System.out.println(listOfProducts.get(0).getCombinations().getCombinations().get(0).getAttributes().getValues().get(0).toString());

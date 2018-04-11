@@ -38,11 +38,11 @@ public class Main {
 
 	public static void main(String[] args) throws Exception  {
 		String baseUrl = "http://fashion-jakubiak.pl/webapi/rest";
-		String numocoFilePath = "C:\\\\temp\\\\numoco.xml";
+		String numocoFilePath = "numoco.xml";
 		String numocoFileURL = "https://www.numoco.com/myadmin/service/json/mcenniki/ynspe/key=8c74fd6f47bded101ba3192f93ba48ff//profileId=1/do=xml/";
 
-		String numocoCodesFilePath = "C:\\\\temp\\\\numocoListOfCodes.txt";
-		String lemoniadeFilePath = "C:\\temp\\lemoniade.xml";
+		String numocoCodesFilePath = "numocoListOfCodes.txt";
+		String lemoniadeFilePath = "lemoniade.xml";
 		String lemoniadeFileURL = "https://wspolpraca.lemoniade.pl/export/export.xml";
 
 		String lemoniadeCodesFilePath = "lemoniadeListOfCodes.txt";
@@ -50,8 +50,8 @@ public class Main {
 		LocalDateTime now = LocalDateTime.now();
 		
 		PrintStream fileStream = new PrintStream("C:\\\\temp\\\\integracjaHurtowni"+dtf.format(now)+".out");
-		//System.setOut(fileStream);
-		//System.setErr(fileStream);
+		System.setOut(fileStream);
+		System.setErr(fileStream);
 	
 		Boolean processAll = false;
 		Boolean processNumoco = true;

@@ -1,5 +1,6 @@
 package jakubiakFashionItemsLoader;
-import java.io.File;
+import java.net.*; 
+import java.io.*; 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,6 +19,8 @@ import java.net.URI;
 import java.net.URLEncoder;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 import org.glassfish.jersey.client.ClientConfig;
 import org.glassfish.jersey.client.authentication.HttpAuthenticationFeature;
@@ -35,31 +38,44 @@ public class Main {
 
 	public static void main(String[] args) throws Exception  {
 		String baseUrl = "http://fashion-jakubiak.pl/webapi/rest";
-		String numocoFilePath = "\\\\\\\\192.168.1.1\\\\123\\\\Firma\\\\01042018numoco.xml";
-		String numocoCodesFilePath = "\\\\192.168.1.1\\123\\Firma\\numocoListOfCodes.txt";
-		String lemoniadeFilePath = "\\\\192.168.1.1\\123\\Firma\\01042018lemoniade.xml";
-		String lemoniadeCodesFilePath = "\\\\192.168.1.1\\123\\Firma\\lemoniadeListOfCodes.txt";
+		String numocoFilePath = "C:\\\\temp\\\\numoco.xml";
+		String numocoFileURL = "https://www.numoco.com/myadmin/service/json/mcenniki/ynspe/key=8c74fd6f47bded101ba3192f93ba48ff//profileId=1/do=xml/";
+
+		String numocoCodesFilePath = "C:\\\\temp\\\\numocoListOfCodes.txt";
+		String lemoniadeFilePath = "C:\\temp\\lemoniade.xml";
+		String lemoniadeFileURL = "https://wspolpraca.lemoniade.pl/export/export.xml";
+
+		String lemoniadeCodesFilePath = "lemoniadeListOfCodes.txt";
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
+		LocalDateTime now = LocalDateTime.now();
+		
+		PrintStream fileStream = new PrintStream("C:\\\\temp\\\\integracjaHurtowni"+dtf.format(now)+".out");
+		//System.setOut(fileStream);
+		//System.setErr(fileStream);
 	
-		Boolean processAll = true;
-		Boolean processNumoco = false;
+		Boolean processAll = false;
+		Boolean processNumoco = true;
 		Boolean processLemoniade = true;
-		Boolean stocksOnly = true;
+		Boolean stocksOnly = false;
 		
 		RestHelper shopConnection = new RestHelper(baseUrl);
-		System.out.println(shopConnection.getProductsList(1));
 		if(processNumoco)
 		{
-			NumocoHelper numocoConnection = new NumocoHelper(numocoFilePath,numocoCodesFilePath, processAll, stocksOnly);
+			System.out.println("Processing Numoco");
+			NumocoHelper numocoConnection = new NumocoHelper(numocoFileURL,numocoFilePath,numocoCodesFilePath, processAll, stocksOnly);
 			numocoConnection.processProducts(shopConnection);
+			System.out.println("Numoco processed");
+
 		}
 		
 		if(processLemoniade)
 		{
-			LemoniadeHelper lemoniadeConnection = new LemoniadeHelper(lemoniadeFilePath,lemoniadeCodesFilePath, processAll, stocksOnly);
+			System.out.println("Processing Lemoniade");
+
+			LemoniadeHelper lemoniadeConnection = new LemoniadeHelper(lemoniadeFileURL,lemoniadeFilePath,lemoniadeCodesFilePath, processAll, stocksOnly);
 			lemoniadeConnection.processProducts(shopConnection);
+			System.out.println("Lemoniade processed");
+
 		}
-		//List<com.pl.jakubiak.lemoniadeapi.Product> listOfProducts = lemoniadeConnection.getListOfProducts();
-		//listOfProducts.get(0);
-		//System.out.println(listOfProducts.get(0).getCombinations().getCombinations().get(0).getAttributes().getValues().get(0).toString());
-	}
+		}
 }

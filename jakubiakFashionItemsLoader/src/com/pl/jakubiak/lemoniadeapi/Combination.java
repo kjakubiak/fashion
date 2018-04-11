@@ -14,12 +14,19 @@ public class Combination {
 	String ean;
 	String quantity;
 	Values attributes;
+	Images images;
 //	Images images;
 	public String getId() {
 		return id;
 	}
 	public void setId(String id) {
 		this.id = id;
+	}
+	public Images getImages() {
+		return images;
+	}
+	public void setImages(Images images) {
+		this.images = images;
 	}
 	public String getEan() {
 		return ean;

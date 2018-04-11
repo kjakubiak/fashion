@@ -72,6 +72,30 @@ public class Product {
 		builder.append("]");
 		return builder.toString();
 	}
+	public String getPrice() {
+		return price;
+	}
+	public void setPrice(String price) {
+		this.price = price;
+	}
+	public String getPrice_suggested() {
+		return price_suggested;
+	}
+	public void setPrice_suggested(String price_suggested) {
+		this.price_suggested = price_suggested;
+	}
+	public String getCurrency() {
+		return currency;
+	}
+	public void setCurrency(String currency) {
+		this.currency = currency;
+	}
+	public String getId_category() {
+		return id_category;
+	}
+	public void setId_category(String id_category) {
+		this.id_category = id_category;
+	}
 	
 	
 }

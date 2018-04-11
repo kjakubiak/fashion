@@ -1,9 +1,15 @@
 package com.pl.jakubiak.numocoapi;
 
 import java.io.File;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URL;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -23,18 +29,29 @@ public class NumocoHelper {
 	private static Boolean processNumoco;
 	private static Boolean stocksOnly;
 	private static List<String> listOfCodesToProcess;
+	private static String filePath;
 	
-	public NumocoHelper(String filePath,String numocoEansFilePath, Boolean processAll,Boolean stocksOnly) throws Exception
+	public NumocoHelper(String fileURL,String filePath,String numocoEansFilePath, Boolean processAll,Boolean stocksOnly) throws Exception
 	{
-		File numocoXMLFile = new File(filePath);
+
+		File fileToDelete = new File(filePath);
+		fileToDelete.delete();
+		
+		URL url = new URL(fileURL);
+		try (InputStream in = url.openStream()) {
+	    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+		}
+		File file = new File(filePath);
+
 		
 		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);		
 		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
-		Root root = (Root) jaxbUnmarshaller.unmarshal(numocoXMLFile);
+		Root root = (Root) jaxbUnmarshaller.unmarshal(file);
 		
 		this.listOfProducts =  root.getProducts().getProducts();
 		this.processAll = processAll;
 		this.stocksOnly = stocksOnly;
+		this.filePath = filePath;
 
 		File numocoListOfEansFile = new File(numocoEansFilePath);
 		
@@ -60,15 +77,15 @@ public class NumocoHelper {
 		}
 	}
 
-	public void createNewProduct(Product product,RestHelper shopConnection) throws UnsupportedEncodingException, InterruptedException
+	public void createNewProduct(Product product,RestHelper shopConnection) throws Exception
 	{
-		System.out.println("NumocoHelper PRODUCT CREATION STARTED");
-		System.out.println("NumocoHelper creating product : "+product.getName().replaceAll("\\n", "").trim()+" EAN: "+product.getEan().replaceAll("\\n", "").trim());
+		log("NumocoHelper PRODUCT CREATION STARTED");
+		log("NumocoHelper creating product : "+product.getName().replaceAll("\\n", "").trim()+" EAN: "+product.getEan().replaceAll("\\n", "").trim());
 
 		ShoperProduct productToAdd = new ShoperProduct();
-		Map<String,String> productTranslations = new HashMap();
+		Map<String,Object> productTranslations = new HashMap();
 		int productId;
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().disableInnerClassSerialization().create();
 		if(Integer.parseInt(product.getCount())>0)
 		{
 			productStatus=true;
@@ -82,14 +99,14 @@ public class NumocoHelper {
 		productToAdd.setTranslations(productTranslations);
 		productToAdd.setProducer_id(26);
 		
-		System.out.println("NumocoHelper added new translation object: "+gson.toJson(productTranslations).replaceAll("\\\\", ""));
+		log("NumocoHelper added new translation object: "+gson.toJson(productToAdd.getTranslations()));
 		productToAdd.setCategory_id(Integer.parseInt(categoryMapper(product.getCategory_id())));
 		productToAdd.setCode(product.getModel().replaceAll("\\n", ""));
 		productToAdd.setGroup_id(4);
 		productToAdd.setDelivery_id(2);
 		productToAdd.setPkwiu("");
 		productToAdd.setStock(productToAdd.generateStock(product));
-		System.out.println(product.getEan());
+		log(product.getEan());
 		if(!product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim().startsWith("5"))
 		{
 			productToAdd.setEan("5"+product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim());
@@ -98,24 +115,24 @@ public class NumocoHelper {
 			productToAdd.setEan(product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim());
 
 		}
-		String jsonToProvision = gson.toJson(productToAdd).replaceAll("\\\\","").replaceAll("\\}\"","}").replaceAll("\"\\{", "{");
-		System.out.println("NumocoHelper product generated");
-		System.out.println("Numoco helper product provisioning json: "+jsonToProvision);
+		String jsonToProvision = gson.toJson(productToAdd);
+		log("NumocoHelper product generated");
+		log("Numoco helper product provisioning json: "+jsonToProvision);
 		productId = shopConnection.commitTransaction(jsonToProvision);
-		System.out.println("NumocoHelper product provisioned");
+		log("NumocoHelper product provisioned");
 		
 		// Add photo
-		System.out.println("NumocoHelper generating photos");
+		log("NumocoHelper generating photos");
 
 		List<String> photosAddString = productToAdd.generatePhotos(product,productId);
 		for(String jsonSinglePhoto:photosAddString)
 		{
 			shopConnection.commitTransaction(jsonSinglePhoto, "product-images");
 		}
-		System.out.println("NumocoHelper photos provisioned");
+		log("NumocoHelper photos provisioned");
 
 		// Add variants
-		System.out.println("NumocoHelper generating product variants");
+		log("NumocoHelper generating product variants");
 		
 		if(product.getSizes().getSizes() != null)
 		{
@@ -124,17 +141,58 @@ public class NumocoHelper {
 			for(String jsonSingleStock:stocksAddString)
 			{
 				jsonSingleStock = jsonSingleStock.replaceAll("\\\\","").replaceAll("\\}\"","}").replaceAll("\"\\{", "{");
-				System.out.println("String to provision: "+jsonSingleStock);
+				log("String to provision: "+jsonSingleStock);
 				shopConnection.commitTransaction(jsonSingleStock, "product-stocks");
 			}
-			System.out.println("NumocoHelper product variants provisioned");
+			log("NumocoHelper product variants provisioned");
 		}
 
 	}
-	public void modifyProductStocks(Product product,RestHelper shoperConnection) throws UnsupportedEncodingException, InterruptedException
+	public void modifyProductStocks(Product product,RestHelper shoperConnection) throws Exception
 	{
+		//Update product
+		ShoperProduct productToAdd = new ShoperProduct();
+		Map<String,Object> productTranslations = new HashMap();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().disableInnerClassSerialization().create();
+		if(Integer.parseInt(product.getCount())>0)
+		{
+			productStatus=true;
+		}else
+		{
+			productStatus=false;
+		}
+		
+		//Add main product
+		productToAdd.generateTranslations(productTranslations, "pl_PL", product, productStatus, 1);
+		productToAdd.setTranslations(productTranslations);
+		productToAdd.setProducer_id(26);
+		
+		log("NumocoHelper added new translation object: "+gson.toJson(productToAdd.getTranslations()));
+		productToAdd.setCategory_id(Integer.parseInt(categoryMapper(product.getCategory_id())));
+		productToAdd.setCode(product.getModel().replaceAll("\\n", ""));
+		productToAdd.setGroup_id(4);
+		productToAdd.setDelivery_id(2);
+		productToAdd.setPkwiu("");
+		productToAdd.setStock(productToAdd.generateStock(product));
+		log(product.getEan());
+		if(!product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim().startsWith("5"))
+		{
+			productToAdd.setEan("5"+product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim());
+		}else
+		{
+			productToAdd.setEan(product.getEan().replaceAll("\\n", "").replaceAll(" ", "").trim());
+
+		}
+		String jsonToProvisionMainUpdate = gson.toJson(productToAdd);
+		log("NumocoHelper product generated");
+		log("Numoco helper product provisioning json: "+jsonToProvisionMainUpdate);
+		Map<String,Object> mainShoperProduct = shoperConnection.getStockByEan(product.getEan().trim());
+		String mainProductPath = "products/"+mainShoperProduct.get("product_id");
+		
+		//Update stocks
 		List<Size> listOfStocksToUpdate = product.getSizes().getSizes();
-		Gson gson = new Gson();
+		shoperConnection.commitTransactionPut(jsonToProvisionMainUpdate, mainProductPath);
+
 		Boolean first = true;
 		if(listOfStocksToUpdate!=null)
 		{
@@ -151,17 +209,17 @@ public class NumocoHelper {
 				{
 					shoperProduct.put("default", false);
 				}
-				System.out.print("Returning product object");
-				System.out.println(shoperProduct);
-				System.out.println("Shoper stock: "+shoperProduct.get("stock"));
-				System.out.println(("File product stock: "+size.getCount()));
+				log("Returning product object");
+				log(shoperProduct.toString());
+				log("Shoper stock: "+shoperProduct.get("stock"));
+				log(("File product stock: "+size.getCount()));
 				
 				if(Integer.parseInt((String) shoperProduct.get("stock"))!=Integer.parseInt(size.getCount()))
 				{
 					String productId = (String) shoperProduct.get("product_id");
 					String stockId = (String) shoperProduct.get("stock_id");
 					String path = "product-stocks/"+stockId;
-					System.out.println("Path is: "+path);
+					log("Path is: "+path);
 				//	shoperProduct.put(key, value)
 					//shoperProduct.put("product_id", productId);
 					shoperProduct.put("stock", size.getCount());
@@ -175,7 +233,7 @@ public class NumocoHelper {
 					}
 					
 					String jsonToProvision = gson.toJson(shoperProduct);
-					System.out.println(jsonToProvision);
+					log(jsonToProvision);
 					shoperConnection.commitTransactionPut(jsonToProvision, path);
 				}		
 			}
@@ -183,48 +241,48 @@ public class NumocoHelper {
 		}
 		}
 	}
-	public void processProducts(RestHelper shoperConnection) throws UnsupportedEncodingException, InterruptedException
+	public void processProducts(RestHelper shoperConnection) throws Exception
 	{
 		int foundCounter =0;
 		int notFoundCounter = 0;
 		int processCounter = 0;
 		int progressProcent = 0;
-		System.out.println("NumocoHelper STARTED PRODUCTS PROCESSING");
-		System.out.println("NumocoHelper Ammount of records in XML file is: "+listOfProducts.size());
+		log("NumocoHelper STARTED PRODUCTS PROCESSING");
+		log("NumocoHelper Ammount of records in XML file is: "+listOfProducts.size());
 		
 		for(Product product:listOfProducts)
 		{
-			System.out.println("NumocoHelper verifying if Code: "+product.getModel()+" shall be processed.");
-			System.out.println("NumocoHelper list of codes is: "+listOfCodesToProcess.toString());
-			System.out.println("NumocoHelper process all is: "+processAll);
-			//System.out.println("NumocoHelper code to process : "+listOfCodesToProcess.contains(product.getModel().trim()));
+			log("NumocoHelper verifying if Code: "+product.getModel()+" shall be processed.");
+			log("NumocoHelper list of codes is: "+listOfCodesToProcess.toString());
+			log("NumocoHelper process all is: "+processAll);
+			//log("NumocoHelper code to process : "+listOfCodesToProcess.contains(product.getModel().trim()));
 
 			if(processAll || (product.getModel() != null) && listOfCodesToProcess.contains(product.getModel().trim()))
 			{
-				System.out.println("NumocoHelper processing");
+				log("NumocoHelper processing");
 
 				Thread.sleep(5000);
 				if(progressProcent != (processCounter*100)/listOfProducts.size())
 				{
 					progressProcent = (processCounter*100)/listOfProducts.size();
-					System.out.println("NumocoHelper Progress... "+(processCounter*100)/listOfProducts.size()+"%");
+					log("NumocoHelper Progress... "+(processCounter*100)/listOfProducts.size()+"%");
 				}
-				System.out.println("NumocoHelper Checking product EAN number");
+				log("NumocoHelper Checking product EAN number");
 	
 				if(product.getEan()!=null)
 				{
-					System.out.println("NumocoHelper EAN number is: "+product.getEan().trim());
+					log("NumocoHelper EAN number is: "+product.getEan().trim());
 					Map<String,Object> shoperProduct = shoperConnection.getProductByEan(product.getEan().trim());
 					
 					if(shoperProduct != null)
 					{
-						System.out.println("NumocoHelper product found in Shopper database");
+						log("NumocoHelper product found in Shopper database");
 						modifyProductStocks(product,shoperConnection);
 						// Modify stock quantities
 						foundCounter++;
 					}else
 					{
-						System.out.println("NumocoHelper product not found in Shopper database");
+						log("NumocoHelper product not found in Shopper database");
 						// Create new product
 					
 						createNewProduct(product,shoperConnection);
@@ -235,12 +293,14 @@ public class NumocoHelper {
 				processCounter++;
 			}else
 			{
-				System.out.println("NumocoHelper skipping");
+				log("NumocoHelper skipping");
 			}
 		}
-		System.out.println("NumocoHelper found "+Integer.toString(foundCounter)+" products");
-		System.out.println("NumocoHelper not found "+Integer.toString(notFoundCounter)+" products");
-		System.out.println("NumocoHelper FINISHED PROCESSING");
+		log("NumocoHelper found "+Integer.toString(foundCounter)+" products");
+		log("NumocoHelper not found "+Integer.toString(notFoundCounter)+" products");
+		File file = new File(filePath);
+		file.delete();
+		log("NumocoHelper FINISHED PROCESSING");
 
 	}
 	
@@ -251,5 +311,12 @@ public class NumocoHelper {
 	public List<String> getEANStoProcess()
 	{
 		return this.listOfCodesToProcess;
+	}
+	public void log(String logMsg) throws Exception
+	{
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+		LocalDateTime now = LocalDateTime.now();
+		
+		System.out.println(dtf.format(now)+" com.pl.jakubiak.NumocoHelper: "+logMsg);
 	}
 }

@@ -1,5 +1,8 @@
 package com.pl.jakubiak.shopperapi;
 
+import java.net.URLEncoder;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -7,8 +10,13 @@ import java.util.Map;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.pl.jakubiak.lemoniadeapi.Combination;
+import com.pl.jakubiak.lemoniadeapi.Image;
+import com.pl.jakubiak.lemoniadeapi.LemoniadeHelper;
 import com.pl.jakubiak.numocoapi.Product;
 import com.pl.jakubiak.numocoapi.Size;
+import com.pl.jakubiak.shopperapi.RestHelper;
+
 
 public class ShoperProduct {
 	private Integer producer_id;
@@ -34,13 +42,51 @@ public class ShoperProduct {
 	private String additional_producer;
 	private ArrayList<Integer> related;
 	private Map options;
-	private String stock;
+	private Map<String, Object> stock;
 	private Map translations;
 	private String attributes;
 	private ArrayList<Integer> categories;
 	private Map special_offer;
 	
-	public void generateTranslations(	Map<String,String> translationsList,
+	public void log(String logMsg) throws Exception
+	{
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+		LocalDateTime now = LocalDateTime.now();
+		
+		System.out.println(dtf.format(now)+" com.pl.jakubiak.ShoperProduct: "+logMsg);
+	}
+	public void generateTranslations( Map<String,String> translationsList,
+										com.pl.jakubiak.lemoniadeapi.Name name,
+										com.pl.jakubiak.lemoniadeapi.Product product,
+										Boolean productStatus, String color)
+	{
+		if(name.getCode().equals("PL_pl"))
+		{
+		Map<String,Object> languageTranslationMap = new HashMap();
+		String tempProductName = name.getText();
+		if(product.getCode()!=null)
+		{
+			tempProductName= tempProductName.replaceAll(product.getCode(),"");
+		}
+		
+		String productName = tempProductName.replaceAll("\\n", "").trim();
+		
+		languageTranslationMap.put("name", productName+" "+color);
+		//polishTranslationMap.put("short_description", product.getDescription());
+		//polishTranslationMap.put("description", product.getDescription().replaceAll("\\<[^>]*>",""));
+		languageTranslationMap.put("active", productStatus);
+		languageTranslationMap.put("seo_title", productName);
+		languageTranslationMap.put("delivery_id", 2);
+		languageTranslationMap.put("seo_keywords", productName);
+		languageTranslationMap.put("order", 1);
+		languageTranslationMap.put("main_page", true);
+		languageTranslationMap.put("main_page_order", 1);
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		translationsList.put(name.getCode(),(String) gson.toJson(languageTranslationMap, HashMap.class));
+		}
+	}
+										
+	public void generateTranslations(	Map<String,Object> translationsList,
 										String translationName,
 										Product product,
 										Boolean productStatus,
@@ -62,10 +108,16 @@ public class ShoperProduct {
 		
 		String productName = tempProductName.replaceAll("\\n", "");
 		//Gson descriptionGson = sonBuilder().disableHtmlEscaping().create();
-		//System.out.println(product.getDescription());
+		//log(product.getDescription());
 		polishTranslationMap.put("name", productName);
-		//polishTranslationMap.put("short_description", product.getDescription());
-		//polishTranslationMap.put("description", product.getDescription().replaceAll("\\<[^>]*>",""));
+		String productDescription = product.getDescription().replaceAll(" valign=\"top\"","");
+		productDescription = productDescription.replaceAll("\\n","");
+		//System.out.println(productDescription);
+		//URLEncoder encoder = new URLEncoder();
+		//encoder.encode(productDescription)
+		
+		polishTranslationMap.put("short_description", productDescription);
+		polishTranslationMap.put("description", productDescription);
 		polishTranslationMap.put("active", productStatus);
 		polishTranslationMap.put("seo_title", productName);
 		polishTranslationMap.put("delivery_id", 2);
@@ -73,26 +125,67 @@ public class ShoperProduct {
 		polishTranslationMap.put("order", orderNumber);
 		polishTranslationMap.put("main_page", true);
 		polishTranslationMap.put("main_page_order", orderNumber);
-		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
-		translationsList.put(translationName,(String) gson.toJson(polishTranslationMap, HashMap.class));
+		Gson gson = new GsonBuilder().disableHtmlEscaping().disableInnerClassSerialization().create();
+		//Gson gson = new Gson();
+		System.out.println(gson.toJson(polishTranslationMap, HashMap.class));
+		translationsList.put(translationName,polishTranslationMap);
 		
 	}
 	public Double countPrice(String price)
 	{
 		return Math.floor(Double.parseDouble(price)*1.23);
 	}
-	public String generateStock(Product product)
+	public Map<String,Object> generateStock(Product product)
 	{
-		Gson gson = new Gson();
+		Gson gson = new GsonBuilder().disableHtmlEscaping().create();
 		Map<String,Object> stockMap = new HashMap();
 		Double price = countPrice(product.getPrice_netto());
 		stockMap.put("price", Math.floor(price));
 		stockMap.put("stock", Integer.parseInt(product.getCount()));
-		return gson.toJson(stockMap, HashMap.class);
+		return stockMap;
 	}
-	public List<String> generatePhotos(Product product,int productId)
+	public Map<String,Object> generateStock(com.pl.jakubiak.lemoniadeapi.Product product,int overallStock)
+	{
+		Gson gson = new Gson();
+		Double price;
+		Map<String,Object> stockMap = new HashMap();
+		if(!product.getPrice_suggested().equals("0"))
+		{
+			price = Double.parseDouble(product.getPrice_suggested());
+		}else
+		{
+			price = Double.parseDouble(Double.toString(Math.floor((Double) Double.parseDouble(product.getPrice())*1.23*2)));
+		}
+		stockMap.put("price", Math.floor(price));
+		stockMap.put("stock", overallStock);
+		return stockMap;
+	}
+	public List<String> generatePhotos(com.pl.jakubiak.numocoapi.Product product,int productId)
 	{
 		List<String> listOfURLs = product.getPhotos().getPhotos();
+		List<String> listToReturn = new ArrayList();
+		Gson gson = new Gson();
+		for(String photoUrl:listOfURLs)
+		{
+			Map<String,String> mapToJson = new HashMap();
+			mapToJson.put("product_id", Integer.toString(productId));
+			mapToJson.put("url",photoUrl.replace("\\n", "").trim());
+			listToReturn.add(gson.toJson(mapToJson));
+		}
+		return listToReturn;
+	}
+	public List<String> generatePhotos(com.pl.jakubiak.lemoniadeapi.Product product,int productId) throws Exception
+	{
+		log("1");
+		List<Combination> listOfCombinations = product.getCombinations().getCombinations();
+		log("2");
+		List<String> listOfURLs = new ArrayList();
+
+	
+		
+	
+		log("4");
+
 		List<String> listToReturn = new ArrayList();
 		Gson gson = new Gson();
 		for(String photoUrl:listOfURLs)
@@ -113,6 +206,10 @@ public class ShoperProduct {
 		mapOfStockSizes.put("L",63);
 		mapOfStockSizes.put("XL",64);
 		mapOfStockSizes.put("XXL",65);
+		mapOfStockSizes.put("2XL",65);
+		mapOfStockSizes.put("3XL",66);
+		mapOfStockSizes.put("4XL",72);
+
 		mapOfStockSizes.put("XXXL",66);
 		mapOfStockSizes.put("Uniwersalny",67);
 		mapOfStockSizes.put("UNI",67);
@@ -122,8 +219,8 @@ public class ShoperProduct {
 		mapOfStockSizes.put("XL/XXL", 71);
 		mapOfStockSizes.put("XXXXL", 72);
 		
-		
-		return mapOfStockSizes.get(size);
+		Integer intToReturn = mapOfStockSizes.get(size) != null ? mapOfStockSizes.get(size) : 67;
+		return intToReturn;
 	}
 	public List<String> generateStocks(Product product,int productId)
 	{
@@ -289,11 +386,11 @@ public class ShoperProduct {
 	public void setOptions(Map options) {
 		this.options = options;
 	}
-	public String getStock() {
+	public Map<String, Object> getStock() {
 		return stock;
 	}
-	public void setStock(String stock) {
-		this.stock = stock;
+	public void setStock(Map<String, Object> map) {
+		this.stock = map;
 	}
 	public Map getTranslations() {
 		return translations;
@@ -389,6 +486,82 @@ public class ShoperProduct {
 	public void setDelivery_id(Integer delivery_id) {
 		this.delivery_id = delivery_id;
 	}
+
+	public List<String> generatePhotos(List<String> listOfImages, int productId) {
+		List<String> listToReturn = new ArrayList();
+		Gson gson = new Gson();
+		for(String photoUrl:listOfImages)
+		{
+			Map<String,String> mapToJson = new HashMap();
+			mapToJson.put("product_id", Integer.toString(productId));
+			mapToJson.put("url",photoUrl.replace("\\n", "").trim());
+			listToReturn.add(gson.toJson(mapToJson));
+		}
+		return listToReturn;
+	}
+
+	public List<String> generateStocks(com.pl.jakubiak.lemoniadeapi.Product product, int productId,
+			Map<String, Object> variantMap, LemoniadeHelper helper) throws Exception {
+		
+		List<String> listToReturn = new ArrayList();
+		Gson gson = new Gson();
+		Boolean first = true;
+		log("Before for");
+		for(Map.Entry<String, Object> size : variantMap.entrySet())
+		{
+			log("in for");
+
+			if(!size.getKey().equals("photos") && !size.getKey().equals("colorcode"))
+			{
+				log("in if for");
+
+				HashMap<String,String> sizeAttributes = (HashMap<String, String>) size.getValue();
+				
+				Map<String, Object> newStock = new HashMap();
+				log("Before second if");
+
+				if(first && Integer.parseInt(sizeAttributes.get("qty"))>0)
+				{
+					log("in second if");
+
+					newStock.put("default",true);
+					first=false;
+				}
+				newStock.put("product_id", productId);
+				newStock.put("group_id", 4);
+				newStock.put("stock", sizeAttributes.get("qty"));
+				newStock.put("price_type", 1);
+				newStock.put("category_id", helper.categoryMapper(product.getId_category()));
+				if(Integer.parseInt(sizeAttributes.get("qty"))>0)
+				{
+					newStock.put("active", true);
+				}else
+				{
+					newStock.put("active", false);
+				}
+				Double price;
+				if(!product.getPrice_suggested().equals("0"))
+				{
+					price = Double.parseDouble(product.getPrice_suggested());
+				}else
+				{
+					price = Double.parseDouble(Double.toString(Math.floor((Double) Double.parseDouble(product.getPrice())*1.23*2)));
+				}
+				newStock.put("price", Math.floor(price));
+				newStock.put("ean", sizeAttributes.get("ean"));
+				Map<String,String> optionMap = new HashMap();
+				log("Before stockNumber");
+
+				optionMap.put("7", getStockNumber(size.getKey()).toString());
+				log("After stock number");
+
+				newStock.put("options", gson.toJson(optionMap));
+				listToReturn.add(gson.toJson(newStock));
+				
+			}
+		}
+			return listToReturn;
+		}
 
 	
 }

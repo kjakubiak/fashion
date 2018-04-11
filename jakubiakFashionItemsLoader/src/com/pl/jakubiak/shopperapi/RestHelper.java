@@ -1,7 +1,10 @@
 package com.pl.jakubiak.shopperapi;
 
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Type;
 import java.net.URLEncoder;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -16,6 +19,10 @@ import javax.ws.rs.core.MediaType;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonPrimitive;
+import com.google.gson.JsonSerializationContext;
+import com.google.gson.JsonSerializer;
 import com.google.gson.internal.LinkedTreeMap;
 
 public class RestHelper {
@@ -23,15 +30,23 @@ public class RestHelper {
 	private static String baseUrl;
 	private static Map filterMap = new HashMap();
 
-	
-	public RestHelper(String baseUrl)
+	public void log(String logMsg) throws Exception
 	{
-		//System.out.println("RestFull Api establishing connection");
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+		LocalDateTime now = LocalDateTime.now();
+		
+		System.out.println(dtf.format(now)+" com.pl.jakubiak.RestHelper: "+logMsg);
+	}
+	
+	
+	public RestHelper(String baseUrl) throws Exception
+	{
+		//log("RestFull Api establishing connection");
 		Client client = ClientBuilder.newClient();
 		WebTarget target = client.target(baseUrl).path("auth");
 
 		Form form = new Form();
-		//System.out.println("RestFull Api negotiating security token");
+		//log("RestFull Api negotiating security token");
 
 		String response=target
 						.request(MediaType.APPLICATION_FORM_URLENCODED_TYPE).header("Authorization", "Basic YXBpYWRtaW46QXBpQWRtaW4xMjM=")
@@ -39,7 +54,7 @@ public class RestHelper {
 		
 		Gson gson = new GsonBuilder().create();
 		HashMap map = gson.fromJson(response, HashMap.class);
-		//System.out.println("RestFull Api security token returned: "+map.get("access_token"));
+		log("RestFull Api security token returned: "+map.get("access_token"));
 
 		this.baseUrl = baseUrl;
 		this.authToken = (String) map.get("access_token");
@@ -47,66 +62,66 @@ public class RestHelper {
 	
 	public Map<String,Object> getProductByEan(String ean) throws UnsupportedEncodingException, InterruptedException
 	{
-		//System.out.println("RestFull API getProductByEan method executed");
+		//log("RestFull API getProductByEan method executed");
 		Map<String, Object> filtersMap = new HashMap();
 		filtersMap.put("stock.ean", ean);
-		//System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
+		//log("RestFull API executing getProductsList with limit 1 and filtersMap");
 
 		ArrayList<LinkedTreeMap> list = getProductsList(1,filtersMap);
-		//System.out.println("RestFull API getProductsList executed, returning list of products");
+		//log("RestFull API getProductsList executed, returning list of products");
 
 		if(list != null && list.size()>0)
 		{
-			//System.out.println("RestFull API returned list is not empty");
+			//log("RestFull API returned list is not empty");
 
 			return list.get(0);
 		}else
 		{
-			//System.out.println("RestFull API returned list is empty");
+			//log("RestFull API returned list is empty");
 
 			return null;
 		}
 	}
 	public Map<String,Object> getProductByCode(String code) throws UnsupportedEncodingException, InterruptedException
 	{
-		//System.out.println("RestFull API getProductByEan method executed");
+		//log("RestFull API getProductByEan method executed");
 		Map<String, Object> filtersMap = new HashMap();
 		filtersMap.put("stock.code", code);
-		//System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
+		//log("RestFull API executing getProductsList with limit 1 and filtersMap");
 
 		ArrayList<LinkedTreeMap> list = getProductsList(1,filtersMap);
-		//System.out.println("RestFull API getProductsList executed, returning list of products");
+		//log("RestFull API getProductsList executed, returning list of products");
 
 		if(list != null && list.size()>0)
 		{
-			//System.out.println("RestFull API returned list is not empty");
+			//log("RestFull API returned list is not empty");
 
 			return list.get(0);
 		}else
 		{
-			//System.out.println("RestFull API returned list is empty");
+			//log("RestFull API returned list is empty");
 
 			return null;
 		}
 	}
 	public Map<String,Object> getStockByEan(String ean) throws UnsupportedEncodingException, InterruptedException
 	{
-		//System.out.println("RestFull API getProductByEan method executed");
+		//log("RestFull API getProductByEan method executed");
 		Map<String, Object> filtersMap = new HashMap();
 		filtersMap.put("ean", ean);
-		//System.out.println("RestFull API executing getProductsList with limit 1 and filtersMap");
+		//log("RestFull API executing getProductsList with limit 1 and filtersMap");
 
 		ArrayList<LinkedTreeMap> list = getProductsList(1,filtersMap,"product-stocks");
-		//System.out.println("RestFull API getProductsList executed, returning list of products");
+		//log("RestFull API getProductsList executed, returning list of products");
 
 		if(list != null && list.size()>0)
 		{
-			//System.out.println("RestFull API returned list is not empty");
+			//log("RestFull API returned list is not empty");
 
 			return list.get(0);
 		}else
 		{
-			//System.out.println("RestFull API returned list is empty");
+			//log("RestFull API returned list is empty");
 
 			return null;
 		}
@@ -176,8 +191,8 @@ public class RestHelper {
 		Client client = ClientBuilder.newClient();
 		Gson gson = new GsonBuilder().create();
 		String filterString = gson.toJson(filterMap);
-		//System.out.println("RestFull API received filterString is: "+URLEncoder.encode(filterString, "UTF-8"));
-		//System.out.println("RestFull API received baseUrl is: "+baseUrl);
+		//log("RestFull API received filterString is: "+URLEncoder.encode(filterString, "UTF-8"));
+		//log("RestFull API received baseUrl is: "+baseUrl);
 		
 		WebTarget target = client.target(baseUrl).path(path);
 		

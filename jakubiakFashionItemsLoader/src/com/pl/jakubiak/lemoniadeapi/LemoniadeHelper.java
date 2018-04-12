@@ -57,7 +57,6 @@ public class LemoniadeHelper {
 	{
 	
 		int counter=0;
-		
 		if(!debug)
 		{
 			log("Debug Off");
@@ -68,7 +67,7 @@ public class LemoniadeHelper {
 			
 			URL url = new URL(lemoniadeFileURL);
 			try (InputStream in = url.openStream()) {
-		    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+		    Files.copy(in, Paths.get(lemoniadeFilePath), StandardCopyOption.REPLACE_EXISTING);
 			}
 			
 			URL sizesUrl = new URL(lemoniadeSizesFileURL);
@@ -79,20 +78,21 @@ public class LemoniadeHelper {
 		{
 			log("Debug ON");
 		}
-		File file = new File(filePath);
-		File listOfCodesFile = new File(lemoniadeSizesFilePath);
+		
+		File file = new File(lemoniadeFilePath);
+		File listOfCodesFile = new File(lemoniadeCodesFilePath);
 		
 		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);
 		
 		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 		Root root = (Root) jaxbUnmarshaller.unmarshal(file);
 		
+		log("Main root xml unmarshalled");
+		
 		File sizeFile = new File(lemoniadeSizesFilePath);
-		
-		JAXBContext jaxbSizeContext  = JAXBContext.newInstance(Root.class);
-		
+		JAXBContext jaxbSizeContext  = JAXBContext.newInstance(SizesRoot.class);
 		Unmarshaller jaxbSizeUnmarshaller = jaxbSizeContext.createUnmarshaller();
-		SizesRoot sizeRoot = (SizesRoot) jaxbUnmarshaller.unmarshal(sizeFile);
+		SizesRoot sizeRoot = (SizesRoot) jaxbSizeUnmarshaller.unmarshal(sizeFile);
 		
 		this.processAll = processAll;
 		this.stocksOnly = stocksOnly;
@@ -212,7 +212,7 @@ public class LemoniadeHelper {
 		log("LemoniadeHelper creating product : "+product.getCode().replaceAll("\\n", "").trim());
 		Boolean productStatus;
 		ShoperProduct productToAdd = new ShoperProduct();
-		Map<String,String> productTranslations = new HashMap();
+		Map<String,Object> productTranslations = new HashMap();
 		
 		int productId;
 		int overallStock = 0;
@@ -230,18 +230,18 @@ public class LemoniadeHelper {
 		List<Name> listOfNames = product.getNames().getNames();
 		for(Name name:listOfNames)
 		{			
-			productToAdd.generateTranslations(productTranslations, name, product, productStatus,color.getKey());
+			productToAdd.generateTranslations(productTranslations, name, product, productStatus,color.getKey(),listOfSizes);
 		}
 		productToAdd.setTranslations(productTranslations);
 		productToAdd.setProducer_id(25);
-		log("LemoniadeHelper added new translation object: "+gson.toJson(productTranslations).replaceAll("\\\\", ""));
+		log("LemoniadeHelper added new translation object: "+gson.toJson(productTranslations));
 		productToAdd.setCategory_id(Integer.parseInt(categoryMapper(product.getId_category())));
 		productToAdd.setCode(product.getCode()+"_"+variantMap.get("colorcode"));
 		productToAdd.setGroup_id(4);
 		productToAdd.setDelivery_id(2);
 		productToAdd.setPkwiu("");
 		productToAdd.setStock(productToAdd.generateStock(product,overallStock));
-		String jsonToProvision = gson.toJson(productToAdd).replaceAll("\\\\","").replaceAll("\\}\"","}").replaceAll("\"\\{", "{");
+		String jsonToProvision = gson.toJson(productToAdd);
 		log("LemoniadeHelper product generated");
 		log("LemoniadeHelper product provisioning json: "+jsonToProvision);
 		productId = shopConnection.commitTransaction(jsonToProvision);
@@ -326,8 +326,7 @@ public class LemoniadeHelper {
 				}
 			}
 		}
-		File file = new File(filePath);
-		file.delete();
+		
 		log("LemoniadeHelper processed");
 
 	}
@@ -336,13 +335,48 @@ public class LemoniadeHelper {
 		
 		Gson gson = new Gson();
 		Boolean first = true;
-		for(SizeProduct sizeProduct : listOfSizes)
+		
+		// Modify main product
+		
+		Boolean productStatus;
+		ShoperProduct productToAdd = new ShoperProduct();
+		Map<String,Object> productTranslations = new HashMap();
+		
+		
+		int overallStock = 0;
+		//Gson gson = new GsonBuilder().disableHtmlEscaping().create();
+		for(Map.Entry<String, Object> size : variantMap.entrySet())
 		{
-			if(sizeProduct.getId().equals(product.getId()))
+			if(!size.getKey().equals("photos") && !size.getKey().equals("colorcode"))
 			{
-				
+				overallStock+=Integer.parseInt(((HashMap<String,String>) size.getValue()).get("qty"));
 			}
 		}
+		
+		productStatus = overallStock>0?true:false;
+		
+		List<Name> listOfNames = product.getNames().getNames();
+		for(Name name:listOfNames)
+		{			
+			productToAdd.generateTranslations(productTranslations, name, product, productStatus,color.getKey(),listOfSizes);
+		}
+		productToAdd.setTranslations(productTranslations);
+		productToAdd.setProducer_id(25);
+		log("LemoniadeHelper added new translation object: "+gson.toJson(productTranslations));
+		productToAdd.setCategory_id(Integer.parseInt(categoryMapper(product.getId_category())));
+		productToAdd.setCode(product.getCode()+"_"+variantMap.get("colorcode"));
+		productToAdd.setGroup_id(4);
+		productToAdd.setDelivery_id(2);
+		productToAdd.setPkwiu("");
+		productToAdd.setStock(productToAdd.generateStock(product,overallStock));
+		String jsonToProvisionMainUpdate = gson.toJson(productToAdd);
+		log("LemoniadeHelper product generated");
+		log("LemoniadeHelper product provisioning json: "+jsonToProvisionMainUpdate);
+		String mainProductId = (String) shoperConnection.getProductByCode(product.getCode()+"_"+variantMap.get("colorcode")).get("product_id");
+		String mainProductPath = "products/"+mainProductId;
+		shoperConnection.commitTransactionPut(jsonToProvisionMainUpdate, mainProductPath);
+		
+		// End of main product modify
 		for(Map.Entry<String, Object> size : variantMap.entrySet())
 		{
 			if(!size.getKey().equals("photos") && !size.getKey().equals("colorcode"))

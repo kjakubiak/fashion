@@ -21,7 +21,9 @@ public class Product {
 	@XmlElement(name = "descriptions")
 
 	Descriptions descriptions;
-	//List<Feature> features;
+	@XmlElement(name = "features")
+
+	Features features;
 	@XmlElement(name = "combinations")
 
 	Combinations combinations;
@@ -95,6 +97,12 @@ public class Product {
 	}
 	public void setId_category(String id_category) {
 		this.id_category = id_category;
+	}
+	public Features getFeatures() {
+		return features;
+	}
+	public void setFeatures(Features features) {
+		this.features = features;
 	}
 	
 	

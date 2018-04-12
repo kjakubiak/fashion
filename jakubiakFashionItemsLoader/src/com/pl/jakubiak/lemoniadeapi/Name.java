@@ -9,7 +9,8 @@ import javax.xml.bind.annotation.XmlRootElement;
 public class Name {
 	String code;
 	String text;
-	
+	String title;
+	String title_category;
 	public String getCode() {
 		return code;
 	}
@@ -31,6 +32,18 @@ public class Name {
 		builder.append(text);
 		builder.append("]");
 		return builder.toString();
+	}
+	public String getTitle() {
+		return title;
+	}
+	public void setTitle(String title) {
+		this.title = title;
+	}
+	public String getTitle_category() {
+		return title_category;
+	}
+	public void setTitle_category(String title_category) {
+		this.title_category = title_category;
 	}
 
 }

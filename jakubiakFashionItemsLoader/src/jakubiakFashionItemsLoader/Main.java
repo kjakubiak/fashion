@@ -43,16 +43,16 @@ public class Main {
 		Boolean processLemoniade = true;
 		Boolean stocksOnly = false;
 		String baseUrl = "http://fashion-jakubiak.pl/webapi/rest";
-		String numocoFilePath;
 		String numocoFileURL = "https://www.numoco.com/myadmin/service/json/mcenniki/ynspe/key=8c74fd6f47bded101ba3192f93ba48ff//profileId=1/do=xml/";
-
-		String numocoCodesFilePath;
-		String lemoniadeFilePath;
 		String lemoniadeFileURL = "https://wspolpraca.lemoniade.pl/export/export.xml";
 		String lemoniadeSizesFileURL = "https://wspolpraca.lemoniade.pl/export/export_sizes_clothes.xml";
 
-		String lemoniadeSizesFilePath ;
+		String numocoFilePath;
+		String numocoCodesFilePath;
+		String lemoniadeFilePath;
+		String lemoniadeSizesFilePath;
 		String lemoniadeCodesFilePath;
+		
 		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMdd");
 		LocalDateTime now = LocalDateTime.now();
 		
@@ -71,7 +71,7 @@ public class Main {
 			numocoCodesFilePath = "c:\\temp\\numocoListOfCodes.txt";
 			lemoniadeFilePath = "c:\\\\temp\\\\lemoniade.xml";
 			lemoniadeSizesFilePath = "c:\\\\temp\\\\listOfLemoniadeSizes.xml";
-			lemoniadeCodesFilePath = "c:\\\\temp\\\\lemoniadeListOfCodes.xml";
+			lemoniadeCodesFilePath = "c:\\\\temp\\\\lemoniadeListOfCodes.txt";
 			numocoFilePath = "c:\\\\temp\\\\numoco.xml";
 		}
 		

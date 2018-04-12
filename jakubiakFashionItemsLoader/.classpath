@@ -37,5 +37,6 @@
 	<classpathentry kind="lib" path="C:/Users/kamil/git/fashion/jakubiakFashionItemsLoader/lib/persistence-api-1.0.jar"/>
 	<classpathentry kind="lib" path="C:/Users/kamil/git/fashion/jakubiakFashionItemsLoader/lib/validation-api-1.1.0.Final.jar"/>
 	<classpathentry kind="lib" path="C:/Users/kamil/git/fashion/jakubiakFashionItemsLoader/lib/yasson-1.0.jar"/>
+	<classpathentry kind="lib" path="lib/jsoup-1.11.2.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -46,7 +46,14 @@ public class LemoniadeHelper {
 		
 		System.out.println(dtf.format(now)+" com.pl.jakubiak.LemoniadeHelper: "+logMsg);
 	}
-	public LemoniadeHelper(Boolean debug, String sizesFilePath, String fileURL,String filePath,String codesFilePath,Boolean processAll,Boolean stocksOnly) throws Exception
+	public LemoniadeHelper(	Boolean debug,
+							String lemoniadeSizesFileURL, 
+							String lemoniadeSizesFilePath,
+							String lemoniadeFileURL,
+							String lemoniadeFilePath,
+							String lemoniadeCodesFilePath, 
+							Boolean processAll,
+							Boolean stocksOnly) throws Exception
 	{
 	
 		int counter=0;
@@ -56,24 +63,31 @@ public class LemoniadeHelper {
 			log("Debug Off");
 			File fileToDelete = new File(filePath);
 			fileToDelete.delete();
+			File sizesFileToDelete = new File(lemoniadeSizesFileURL);
+			sizesFileToDelete.delete();
 			
-			URL url = new URL(fileURL);
+			URL url = new URL(lemoniadeFileURL);
 			try (InputStream in = url.openStream()) {
 		    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+			}
+			
+			URL sizesUrl = new URL(lemoniadeSizesFileURL);
+			try (InputStream in = sizesUrl.openStream()) {
+		    Files.copy(in, Paths.get(lemoniadeSizesFilePath), StandardCopyOption.REPLACE_EXISTING);
 			}
 		}else
 		{
 			log("Debug ON");
 		}
 		File file = new File(filePath);
-		File listOfCodesFile = new File(codesFilePath);
+		File listOfCodesFile = new File(lemoniadeSizesFilePath);
 		
 		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);
 		
 		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 		Root root = (Root) jaxbUnmarshaller.unmarshal(file);
 		
-		File sizeFile = new File(sizesFilePath);
+		File sizeFile = new File(lemoniadeSizesFilePath);
 		
 		JAXBContext jaxbSizeContext  = JAXBContext.newInstance(Root.class);
 		

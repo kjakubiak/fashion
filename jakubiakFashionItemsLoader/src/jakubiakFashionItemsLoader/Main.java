@@ -38,6 +38,10 @@ public class Main {
 
 	public static void main(String[] args) throws Exception  {
 		Boolean debug = true;
+		Boolean processAll = false;
+		Boolean processNumoco = false;
+		Boolean processLemoniade = true;
+		Boolean stocksOnly = false;
 		String baseUrl = "http://fashion-jakubiak.pl/webapi/rest";
 		String numocoFilePath;
 		String numocoFileURL = "https://www.numoco.com/myadmin/service/json/mcenniki/ynspe/key=8c74fd6f47bded101ba3192f93ba48ff//profileId=1/do=xml/";
@@ -45,14 +49,16 @@ public class Main {
 		String numocoCodesFilePath;
 		String lemoniadeFilePath;
 		String lemoniadeFileURL = "https://wspolpraca.lemoniade.pl/export/export.xml";
+		String lemoniadeSizesFileURL = "https://wspolpraca.lemoniade.pl/export/export_sizes_clothes.xml";
+
 		String lemoniadeSizesFilePath ;
 		String lemoniadeCodesFilePath;
-		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMddHHmm");
+		DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyyMMdd");
 		LocalDateTime now = LocalDateTime.now();
 		
-		PrintStream fileStream = new PrintStream("C:\\\\temp\\\\integracjaHurtowni"+dtf.format(now)+".out");
 		if(!debug)
 		{
+			PrintStream fileStream = new PrintStream(new FileOutputStream("integracjaHurtowni"+dtf.format(now)+".out",true));
 			System.setOut(fileStream);
 			System.setErr(fileStream);
 			numocoCodesFilePath = "numocoListOfCodes.txt";
@@ -64,14 +70,11 @@ public class Main {
 		{
 			numocoCodesFilePath = "c:\\temp\\numocoListOfCodes.txt";
 			lemoniadeFilePath = "c:\\\\temp\\\\lemoniade.xml";
-			lemoniadeSizesFilePath = "c:\\\\temp\\\\listOfLemoniadeSizes.txt";
-			lemoniadeCodesFilePath = "c:\\\\temp\\\\lemoniadeListOfCodes.txt";
+			lemoniadeSizesFilePath = "c:\\\\temp\\\\listOfLemoniadeSizes.xml";
+			lemoniadeCodesFilePath = "c:\\\\temp\\\\lemoniadeListOfCodes.xml";
 			numocoFilePath = "c:\\\\temp\\\\numoco.xml";
 		}
-		Boolean processAll = false;
-		Boolean processNumoco = true;
-		Boolean processLemoniade = false;
-		Boolean stocksOnly = false;
+		
 		
 		RestHelper shopConnection = new RestHelper(baseUrl);
 		if(processNumoco)
@@ -85,7 +88,14 @@ public class Main {
 		if(processLemoniade)
 		{
 			System.out.println("Processing Lemoniade");
-			LemoniadeHelper lemoniadeConnection = new LemoniadeHelper(debug,lemoniadeSizesFilePath,lemoniadeFileURL,lemoniadeFilePath,lemoniadeCodesFilePath, processAll, stocksOnly);
+			LemoniadeHelper lemoniadeConnection = new LemoniadeHelper(	debug,
+																		lemoniadeSizesFileURL,
+																		lemoniadeSizesFilePath,
+																		lemoniadeFileURL,
+																		lemoniadeFilePath,
+																		lemoniadeCodesFilePath, 
+																		processAll, 
+																		stocksOnly);
 			lemoniadeConnection.processProducts(shopConnection);
 			System.out.println("Lemoniade processed");
 

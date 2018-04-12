@@ -10,6 +10,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
+
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.pl.jakubiak.lemoniadeapi.Combination;
@@ -74,7 +79,7 @@ public class ShoperProduct {
 		String productName = tempProductName.replaceAll("\\n", "").trim();
 		URLDecoder urlDecoder = new URLDecoder();
 		String decodedDescription = urlDecoder.decode(product.getDescriptions().getDescriptions().get(0).getText(), "UTF-8");
-		log.(decodedDescription);
+		//log.(decodedDescription);
 		languageTranslationMap.put("name", productName+" "+color);
 		//polishTranslationMap.put("short_description", product.getDescription());
 		//polishTranslationMap.put("description", product.getDescription().replaceAll("\\<[^>]*>",""));
@@ -89,12 +94,89 @@ public class ShoperProduct {
 		translationsList.put(name.getCode(),(String) gson.toJson(languageTranslationMap, HashMap.class));
 		}
 	}
-										
+	public String generateSizesFromHTML(com.pl.jakubiak.numocoapi.Product product) throws Exception
+	{
+		String sizeTable = product.getDescription()
+				.substring(product.getDescription().indexOf("<div class=\"sizes\">"),product.getDescription().indexOf("</div></div>"));
+String transformedSizeTable = sizeTable.replace("th>", "td>")
+							.replaceAll("<strong>", "")
+							.replaceAll("</strong>", "")
+							.replaceAll("<h3>", "")
+							.replaceAll("</h3>", "")
+							.replaceAll("<th", "<td");
+		Document doc = Jsoup.parse(transformedSizeTable);
+		Element docSizeTable = doc.select("table").get(0);
+		Elements docSizeRows = docSizeTable.select("tr");
+		HashMap<String,Object> sizesMap = new HashMap();
+		int rowCounter = 0 ;
+		List<String> headers = new ArrayList();
+
+		for(Element sizeRow:docSizeRows)
+		{
+			int columnCounter = 0;
+			Elements docSizeRowColumns = sizeRow.select("td");
+
+			if(rowCounter == 0)
+			{
+				log("Generating size headers");
+				for(Element sizeField : docSizeRowColumns)
+				{
+					log(sizeField.text());
+					headers.add(sizeField.text());
+				}
+				log(headers.toString());
+			}else
+			{
+				HashMap<String,String> sizesMapRow = new HashMap<String, String>();
+				log("Generating remaining map entries");
+				columnCounter = 0;
+				for(Element sizeField : docSizeRowColumns)
+				{
+					String sizeName;
+					log("Column counter is: "+columnCounter);
+					if(columnCounter==0)
+					{
+						log("Initializing map for: "+sizeField.text());
+						sizeName = sizeField.text();
+						sizesMapRow = new HashMap();
+						sizesMap.put(sizeName, sizesMapRow);
+					}else
+					{
+						log("Adding entry for size: "+headers.get(columnCounter)+" value is: "+sizeField.text());
+						sizesMapRow.put(headers.get(columnCounter), sizeField.text());
+					}
+					//log(sizeField.text());
+					columnCounter++;
+				}
+			}
+			rowCounter++;
+		}
+		log(sizesMap.toString());
+		StringBuilder sizesListString = new StringBuilder("<br><strong>Wysmiary mierzone na p³asko - bez rozci¹gania materia³u (+/- 2 cm)<br></strong><ul>");
+		for(Map.Entry<String, Object> dimention:sizesMap.entrySet())
+		{
+			sizesListString.append("<li><strong>")
+							.append(dimention.getKey())
+							.append(" - </strong>");
+			Map<String,String> sizesMapToProcess = (Map<String, String>) dimention.getValue();
+			for(Map.Entry<String,String> size : sizesMapToProcess.entrySet())
+			{
+				sizesListString.append(size.getKey())
+								.append(": ")
+								.append(size.getValue())
+								.append("cm ");
+			}
+			sizesListString.append("</li>");			
+		}
+		sizesListString.append("</ul>");
+		return sizesListString.toString();
+
+	}
 	public void generateTranslations(	Map<String,Object> translationsList,
 										String translationName,
 										Product product,
 										Boolean productStatus,
-										Integer orderNumber)										
+										Integer orderNumber) throws Exception										
 	{
 		Map<String,Object> polishTranslationMap = new HashMap();
 		String tempProductName = product.getName();
@@ -114,14 +196,20 @@ public class ShoperProduct {
 		//Gson descriptionGson = sonBuilder().disableHtmlEscaping().create();
 		//log(product.getDescription());
 		polishTranslationMap.put("name", productName);
-		String productDescription = product.getDescription().replaceAll(" valign=\"top\"","");
+		String productDescription = product.getDescription().substring(0, product.getDescription().indexOf("<div class=\"sizes\">"));
+		
+	//	log(transformedSizeTable);
+		
+		String sizeListString = generateSizesFromHTML(product);
+		
 		productDescription = productDescription.replaceAll("\\n","");
+		
 		//System.out.println(productDescription);
 		//URLEncoder encoder = new URLEncoder();
 		//encoder.encode(productDescription)
 		
-		polishTranslationMap.put("short_description", productDescription);
-		polishTranslationMap.put("description", productDescription);
+		polishTranslationMap.put("short_description", productDescription+sizeListString);
+		polishTranslationMap.put("description", productDescription+sizeListString);
 		polishTranslationMap.put("active", productStatus);
 		polishTranslationMap.put("seo_title", productName);
 		polishTranslationMap.put("delivery_id", 2);

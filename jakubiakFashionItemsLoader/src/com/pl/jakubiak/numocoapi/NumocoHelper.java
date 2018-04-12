@@ -43,7 +43,7 @@ public class NumocoHelper {
 			
 			URL url = new URL(fileURL);
 			try (InputStream in = url.openStream()) {
-		    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+			    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
 			}
 		}else
 		{
@@ -306,11 +306,7 @@ public class NumocoHelper {
 		}
 		log("NumocoHelper found "+Integer.toString(foundCounter)+" products");
 		log("NumocoHelper not found "+Integer.toString(notFoundCounter)+" products");
-		if(!debug)
-		{
-			File file = new File(filePath);
-			file.delete();
-		}
+		
 		log("NumocoHelper FINISHED PROCESSING");
 
 	}

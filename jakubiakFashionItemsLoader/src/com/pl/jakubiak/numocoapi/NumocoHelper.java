@@ -28,18 +28,26 @@ public class NumocoHelper {
 	private static Boolean processAll;
 	private static Boolean processNumoco;
 	private static Boolean stocksOnly;
+	private static Boolean debug;
 	private static List<String> listOfCodesToProcess;
 	private static String filePath;
 	
-	public NumocoHelper(String fileURL,String filePath,String numocoEansFilePath, Boolean processAll,Boolean stocksOnly) throws Exception
+	public NumocoHelper(Boolean debug, String fileURL,String filePath,String numocoEansFilePath, Boolean processAll,Boolean stocksOnly) throws Exception
 	{
 
-		File fileToDelete = new File(filePath);
-		fileToDelete.delete();
-		
-		URL url = new URL(fileURL);
-		try (InputStream in = url.openStream()) {
-	    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+		if(!debug)
+		{
+			log("Debug Off");
+			File fileToDelete = new File(filePath);
+			fileToDelete.delete();
+			
+			URL url = new URL(fileURL);
+			try (InputStream in = url.openStream()) {
+		    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+			}
+		}else
+		{
+			log("Debug ON");
 		}
 		File file = new File(filePath);
 
@@ -47,7 +55,7 @@ public class NumocoHelper {
 		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);		
 		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 		Root root = (Root) jaxbUnmarshaller.unmarshal(file);
-		
+		this.debug = debug;
 		this.listOfProducts =  root.getProducts().getProducts();
 		this.processAll = processAll;
 		this.stocksOnly = stocksOnly;
@@ -298,8 +306,11 @@ public class NumocoHelper {
 		}
 		log("NumocoHelper found "+Integer.toString(foundCounter)+" products");
 		log("NumocoHelper not found "+Integer.toString(notFoundCounter)+" products");
-		File file = new File(filePath);
-		file.delete();
+		if(!debug)
+		{
+			File file = new File(filePath);
+			file.delete();
+		}
 		log("NumocoHelper FINISHED PROCESSING");
 
 	}

@@ -34,6 +34,7 @@ import com.pl.jakubiak.shopperapi.ShoperProduct;
 
 public class LemoniadeHelper {
 	List<Product> listOfProducts;
+	List<SizeProduct> listOfSizes;
 	Boolean processAll;
 	Boolean stocksOnly;
 	private static List<String> listOfCodesToProcess;
@@ -45,29 +46,44 @@ public class LemoniadeHelper {
 		
 		System.out.println(dtf.format(now)+" com.pl.jakubiak.LemoniadeHelper: "+logMsg);
 	}
-	public LemoniadeHelper(String fileURL,String filePath,String codesFilePath,Boolean processAll,Boolean stocksOnly) throws JAXBException, IOException
+	public LemoniadeHelper(Boolean debug, String sizesFilePath, String fileURL,String filePath,String codesFilePath,Boolean processAll,Boolean stocksOnly) throws Exception
 	{
-	//	File fileToDelete = new File(filePath);
-		//fileToDelete.delete();
-
-		File listOfCodesFile = new File(codesFilePath);
-		
-		URL url = new URL(fileURL);
-		try (InputStream in = url.openStream()) {
-		    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
-		}
-		File file = new File(filePath);
-
-		
-		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);
+	
 		int counter=0;
 		
+		if(!debug)
+		{
+			log("Debug Off");
+			File fileToDelete = new File(filePath);
+			fileToDelete.delete();
+			
+			URL url = new URL(fileURL);
+			try (InputStream in = url.openStream()) {
+		    Files.copy(in, Paths.get(filePath), StandardCopyOption.REPLACE_EXISTING);
+			}
+		}else
+		{
+			log("Debug ON");
+		}
+		File file = new File(filePath);
+		File listOfCodesFile = new File(codesFilePath);
+		
+		JAXBContext jaxbContext  = JAXBContext.newInstance(Root.class);
 		
 		Unmarshaller jaxbUnmarshaller = jaxbContext.createUnmarshaller();
 		Root root = (Root) jaxbUnmarshaller.unmarshal(file);
+		
+		File sizeFile = new File(sizesFilePath);
+		
+		JAXBContext jaxbSizeContext  = JAXBContext.newInstance(Root.class);
+		
+		Unmarshaller jaxbSizeUnmarshaller = jaxbSizeContext.createUnmarshaller();
+		SizesRoot sizeRoot = (SizesRoot) jaxbUnmarshaller.unmarshal(sizeFile);
+		
 		this.processAll = processAll;
 		this.stocksOnly = stocksOnly;
 		this.listOfProducts = root.getProducts().getProducts() ;
+		this.listOfSizes = sizeRoot.getProducts().getProducts();
 		this.listOfCodesToProcess = Files.readAllLines(listOfCodesFile.toPath(),Charset.forName("UTF-8"));
 		this.filePath = filePath;
 
@@ -306,7 +322,13 @@ public class LemoniadeHelper {
 		
 		Gson gson = new Gson();
 		Boolean first = true;
-		
+		for(SizeProduct sizeProduct : listOfSizes)
+		{
+			if(sizeProduct.getId().equals(product.getId()))
+			{
+				
+			}
+		}
 		for(Map.Entry<String, Object> size : variantMap.entrySet())
 		{
 			if(!size.getKey().equals("photos") && !size.getKey().equals("colorcode"))

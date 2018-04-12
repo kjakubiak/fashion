@@ -1,5 +1,7 @@
 package com.pl.jakubiak.shopperapi;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -58,7 +60,7 @@ public class ShoperProduct {
 	public void generateTranslations( Map<String,String> translationsList,
 										com.pl.jakubiak.lemoniadeapi.Name name,
 										com.pl.jakubiak.lemoniadeapi.Product product,
-										Boolean productStatus, String color)
+										Boolean productStatus, String color) throws UnsupportedEncodingException
 	{
 		if(name.getCode().equals("PL_pl"))
 		{
@@ -70,7 +72,9 @@ public class ShoperProduct {
 		}
 		
 		String productName = tempProductName.replaceAll("\\n", "").trim();
-		
+		URLDecoder urlDecoder = new URLDecoder();
+		String decodedDescription = urlDecoder.decode(product.getDescriptions().getDescriptions().get(0).getText(), "UTF-8");
+		log.(decodedDescription);
 		languageTranslationMap.put("name", productName+" "+color);
 		//polishTranslationMap.put("short_description", product.getDescription());
 		//polishTranslationMap.put("description", product.getDescription().replaceAll("\\<[^>]*>",""));
